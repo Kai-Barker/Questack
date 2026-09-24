@@ -1,0 +1,23 @@
+# Dependencies
+node_modules/
+
+# Compiled TypeScript output
+dist/
+build/
+*.tsbuildinfo
+
+# Environment variables (Gemini API key, DB credentials, JWT secret)
+.env
+.env.*
+!.env.example
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# Test coverage
+coverage/
+
+# Uploaded code must never be stored
+uploads/
