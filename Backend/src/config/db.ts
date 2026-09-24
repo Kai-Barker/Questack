@@ -21,9 +21,14 @@ function loadCaCert(): string {
   return fs.readFileSync(new URL('../../certs/ca.pem', import.meta.url), 'utf8');
 }
 
-export const pool = mysql.createPool({
+// Shared by the app's pool and the database scripts (e.g. database/runSchema.ts)
+export const dbConnectionOptions = {
   uri: uri.toString(),
   ssl: { ca: loadCaCert() },
+};
+
+export const pool = mysql.createPool({
+  ...dbConnectionOptions,
   waitForConnections: true,
   connectionLimit: 5,
 });
