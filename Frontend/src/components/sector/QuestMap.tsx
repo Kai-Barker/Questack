@@ -1,0 +1,82 @@
+import type { SectorQuest } from '../../types/sector';
+import type { QuestState } from '../../utils/quests';
+import type { QuestEdge, QuestLayout } from './questLayout';
+import QuestNode from './QuestNode';
+
+interface QuestMapProps {
+  layout: QuestLayout;
+  states: Map<number, QuestState>;
+  selectedId: number | null;
+  shipQuestId: number | null;
+  onSelect: (questId: number) => void;
+}
+
+// Cleared routes glow cyan, the route into an open quest is solid, and
+// anything leading to a locked quest is dashed.
+function edgeStyle(edge: QuestEdge, states: Map<number, QuestState>) {
+  const from = states.get(edge.from);
+  const to = states.get(edge.to);
+  if (from === 'cleared' && to === 'cleared') return { className: 'stroke-accent/80', dash: undefined };
+  if (from === 'cleared' && to === 'available') return { className: 'stroke-slate-300/70', dash: undefined };
+  return { className: 'stroke-slate-500/60', dash: '4 5' };
+}
+
+// Quest graph for one sector. Nodes are HTML buttons placed by %, and the
+// connecting lines are an SVG stretched over the same box, so both line up
+// at any size.
+export default function QuestMap({ layout, states, selectedId, shipQuestId, onSelect }: QuestMapProps) {
+  const { positions, edges, order } = layout;
+
+  return (
+    // Scrolls sideways inside its box on narrow screens instead of squashing the nodes
+    <div className="overflow-x-auto">
+      <div className="relative mx-auto h-[30rem] min-w-[52rem] lg:h-[34rem]">
+        <svg
+          viewBox="0 0 100 100"
+          preserveAspectRatio="none"
+          aria-hidden="true"
+          className="absolute inset-0 size-full overflow-visible"
+        >
+          {edges.map((edge) => {
+            const from = positions.get(edge.from);
+            const to = positions.get(edge.to);
+            if (!from || !to) return null;
+            const { className, dash } = edgeStyle(edge, states);
+            return (
+              <line
+                key={`${edge.from}-${edge.to}`}
+                x1={from.x}
+                y1={from.y}
+                x2={to.x}
+                y2={to.y}
+                strokeWidth={1.5}
+                strokeDasharray={dash}
+                vectorEffect="non-scaling-stroke"
+                className={className}
+              />
+            );
+          })}
+        </svg>
+
+        <ul aria-label="Quests in this sector">
+          {order.map((quest: SectorQuest) => {
+            const position = positions.get(quest.questId);
+            const state = states.get(quest.questId);
+            if (!position || !state) return null;
+            return (
+              <QuestNode
+                key={quest.questId}
+                quest={quest}
+                state={state}
+                position={position}
+                selected={quest.questId === selectedId}
+                isShip={quest.questId === shipQuestId}
+                onSelect={() => onSelect(quest.questId)}
+              />
+            );
+          })}
+        </ul>
+      </div>
+    </div>
+  );
+}

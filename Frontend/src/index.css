@@ -1,1 +1,112 @@
 @import "tailwindcss";
+
+@theme {
+  --font-display: "Chakra Petch", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+
+  /* Surfaces */
+  --color-space-950: #0b1120;
+  --color-panel: #111a2e;
+  --color-panel-raised: #17223a;
+  --color-line: #1f2b45;
+  --color-line-bright: #2e3f61;
+  --color-muted: #8a9ab5;
+
+  /* Accents: cyan for interactive + Ship's AI, amber for the Swarm, green for buffs */
+  --color-accent: #22d3ee;
+  --color-accent-soft: #67e8f9;
+  --color-accent-deep: #0c2432;
+  --color-swarm: #f5a524;
+  --color-buff: #34d399;
+  --color-buff-deep: #0b2a26;
+  --color-cleared: #1f8a9b;
+
+  /* Galaxy map wedges */
+  --color-wedge-swarm: #241f1b;
+  --color-wedge-swarm-hover: #332a1f;
+  --color-wedge-cleared: #0f3440;
+  --color-wedge-cleared-hover: #144554;
+  --color-wedge-uncharted: #10182a;
+}
+
+/* Signature cut-corner shape. Resize with e.g. [--chamfer:8px]; children inherit the size. */
+@utility chamfer {
+  clip-path: polygon(
+    var(--chamfer, 12px) 0,
+    calc(100% - var(--chamfer, 12px)) 0,
+    100% var(--chamfer, 12px),
+    100% calc(100% - var(--chamfer, 12px)),
+    calc(100% - var(--chamfer, 12px)) 100%,
+    var(--chamfer, 12px) 100%,
+    0 calc(100% - var(--chamfer, 12px)),
+    0 var(--chamfer, 12px)
+  );
+}
+
+/* Slight grow on hover for anything clickable. Uses the `scale` property so it
+   stacks with Tailwind's translate-* classes. Grow more with e.g. [--grow:1.12]. */
+@utility hover-grow {
+  transition: scale 150ms ease-out;
+
+  &:hover:not(:disabled) {
+    scale: var(--grow, 1.04);
+  }
+}
+
+@layer base {
+  html {
+    color-scheme: dark;
+  }
+
+  /* No ligatures in code: learners should see the characters they'd type, so <= stays <= and never becomes ≤ */
+  code,
+  pre,
+  .font-mono {
+    font-variant-ligatures: none;
+  }
+
+  body {
+    background-color: var(--color-space-950);
+    color: var(--color-slate-100);
+    font-family: var(--font-sans);
+  }
+}
+
+@layer components {
+  /* Galaxy map wedges grow outward from the map centre on hover/focus/select.
+     Scaling around the centre keeps each wedge inside its own angle, so the
+     neighbouring wedges never move and never get overlapped. */
+  .sector-wedge {
+    transform-box: view-box;
+    transform-origin: 50% 50%;
+    transition: transform 200ms ease-out;
+  }
+
+  .sector-wedge:hover,
+  .sector-wedge:focus-visible,
+  .sector-wedge[data-selected='true'] {
+    transform: scale(1.06);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* Colour and stroke still change, so the highlight is kept without the motion */
+  .sector-wedge:hover,
+  .sector-wedge:focus-visible,
+  .sector-wedge[data-selected='true'] {
+    transform: none;
+  }
+
+  .hover-grow:hover {
+    scale: none;
+  }
+
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
