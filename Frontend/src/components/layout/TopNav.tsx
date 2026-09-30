@@ -1,10 +1,11 @@
 import { useLayoutEffect, useRef, type Ref } from 'react';
-import { Link, useLocation } from 'react-router';
+import { Link, useLocation, useNavigate } from 'react-router';
+import { useAuth } from '../../hooks/useAuth';
 import { usePilot } from '../../hooks/usePilot';
 import { formatNumber, initials } from '../../utils/format';
 import ChamferFrame from '../ui/ChamferFrame';
 import ProgressBar from '../ui/ProgressBar';
-import { BoltIcon, HomeIcon } from '../ui/icons';
+import { BoltIcon, HomeIcon, SignOutIcon } from '../ui/icons';
 
 // `within` lists the screens that live inside a tab, so Galaxy Map stays lit
 // while the pilot is in a sector or on a quest
@@ -23,7 +24,14 @@ interface TopNavProps {
 
 export default function TopNav({ slotRef, slotInUse }: TopNavProps) {
   const { pilot } = usePilot();
+  const { logout } = useAuth();
+  const navigate = useNavigate();
   const { pathname } = useLocation();
+
+  async function handleSignOut() {
+    await logout();
+    navigate('/login', { replace: true });
+  }
   const headerRef = useRef<HTMLElement>(null);
 
   // Publish the bar's height as --nav-h so full-height screens can fill the rest
@@ -121,6 +129,24 @@ export default function TopNav({ slotRef, slotInUse }: TopNavProps) {
               <span aria-hidden="true">{initials(pilot.callsign)}</span>
               <span className="sr-only">Signed in as {pilot.callsign}</span>
             </ChamferFrame>
+
+            <button
+              type="button"
+              onClick={handleSignOut}
+              aria-label="Sign out"
+              title="Sign out"
+              className="group focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+            >
+              <ChamferFrame
+                as="span"
+                size="sm"
+                grow="sm"
+                borderClassName="bg-line group-hover:bg-line-bright"
+                innerClassName="grid size-10 place-items-center bg-panel text-lg text-slate-300 group-hover:text-accent"
+              >
+                <SignOutIcon />
+              </ChamferFrame>
+            </button>
           </div>
         )}
       </div>

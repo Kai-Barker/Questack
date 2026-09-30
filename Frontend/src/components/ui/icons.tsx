@@ -94,3 +94,9 @@ export const DiamondIcon = (props: IconProps) => (
     <path d="M12 3l9 9-9 9-9-9z" />
   </Icon>
 );
+
+export const SignOutIcon = (props: IconProps) => (
+  <Icon {...props}>
+    <path d="M15 4h4v16h-4M10 8l-4 4 4 4M6 12h11" />
+  </Icon>
+);

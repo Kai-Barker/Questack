@@ -1,9 +1,13 @@
 import 'dotenv/config';
 import express, { type NextFunction, type Request, type Response } from 'express';
 import cors from 'cors';
+import cookieParser from 'cookie-parser';
 import { ApiError } from '@google/genai';
 import { pool } from './config/db.js';
+import { aiLimiter } from './middleware/rateLimiters.js';
+import { requireAuth } from './middleware/requireAuth.js';
 import aiRoutes from './routes/aiRoutes.js';
+import authRoutes from './routes/authRoutes.js';
 import { AiReplyError } from './services/ai/aiService.js';
 import { COMMS_DOWN_MESSAGE } from './utils/commsMessages.js';
 import { HttpError } from './utils/httpError.js';
@@ -14,10 +18,20 @@ app.disable('x-powered-by');
 const PORT = Number(process.env.PORT) || 3000;
 const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:5173';
 
+// Behind a proxy (the Vercel /api rewrite in production), trust it to report
+// the real client IP, or every pilot would share one rate limit.
+// TRUST_PROXY is the number of proxy hops, e.g. 1. Leave it unset locally.
+if (process.env.TRUST_PROXY) {
+  const hops = Number(process.env.TRUST_PROXY);
+  app.set('trust proxy', Number.isInteger(hops) ? hops : process.env.TRUST_PROXY);
+}
+
 // Only the Vite frontend may call this API from a browser
 app.use(cors({ origin: CLIENT_URL }));
 // Capped so a huge paste can't be sent to Gemini (pasted code is limited to 20k characters anyway)
 app.use(express.json({ limit: '100kb' }));
+// Reads the httpOnly session cookie (see src/config/auth.ts)
+app.use(cookieParser());
 
 app.get('/api/health', async (_req, res) => {
   let database = 'connected';
@@ -35,7 +49,9 @@ app.get('/api/health', async (_req, res) => {
   });
 });
 
-app.use('/api/ai', aiRoutes);
+app.use('/api/auth', authRoutes);
+// The Ship's AI is for signed-in pilots only, rate limited per pilot
+app.use('/api/ai', requireAuth, aiLimiter, aiRoutes);
 
 // Unknown API routes get JSON, not Express's default HTML page
 app.use('/api', (_req, res) => {
@@ -47,7 +63,7 @@ app.use('/api', (_req, res) => {
 // contain the pilot's pasted code.
 app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
   if (err instanceof HttpError) {
-    res.status(err.status).json({ error: err.message });
+    res.status(err.status).json({ error: err.message, ...(err.fields && { fields: err.fields }) });
     return;
   }
   if (err instanceof ApiError) {

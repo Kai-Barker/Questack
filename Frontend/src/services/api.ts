@@ -2,9 +2,13 @@ import axios from 'axios';
 
 // Shared axios instance for every backend call.
 // Services call paths like api.get('/health') and this fills in the base URL.
-// Set VITE_API_URL in .env (and in Vercel when deployed).
+//
+// The API is reached on the same origin as the app (/api): the Vite dev server
+// proxies it locally, and a Vercel rewrite does it in production. That keeps
+// the httpOnly session cookie first-party, so the browser sends it with every
+// request. VITE_API_URL can override this, but it should stay same-origin.
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:3000/api',
+  baseURL: import.meta.env.VITE_API_URL || '/api',
   headers: { 'Content-Type': 'application/json' },
 });
 
