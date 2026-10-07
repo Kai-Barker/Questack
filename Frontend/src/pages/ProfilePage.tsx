@@ -12,6 +12,7 @@ import Button from '../components/ui/Button';
 import Panel from '../components/ui/Panel';
 import { useApiRequest } from '../hooks/useApiRequest';
 import { useAuth } from '../hooks/useAuth';
+import { usePilot } from '../hooks/usePilot';
 import { getMyProfile } from '../services/profileService';
 import type { PilotProfile } from '../types/profile';
 
@@ -41,6 +42,7 @@ function ProfileSkeleton() {
 export default function ProfilePage() {
   const { data: profile, loading, error, reload, replace } = useApiRequest(getMyProfile);
   const { refreshUser } = useAuth();
+  const { reload: refreshPilot } = usePilot();
   const [editing, setEditing] = useState<EditSection | null>(null);
 
   const handleSaved = useCallback(
@@ -50,6 +52,15 @@ export default function ProfilePage() {
       if (callsignChanged) void refreshUser();
     },
     [replace, refreshUser],
+  );
+
+  // The nav and Galaxy Map show the running booster, so they refresh too
+  const handleBoosterActivated = useCallback(
+    (updated: PilotProfile) => {
+      replace(updated);
+      refreshPilot();
+    },
+    [replace, refreshPilot],
   );
 
   if (loading) return <ProfileSkeleton />;
@@ -76,7 +87,7 @@ export default function ProfilePage() {
       </div>
 
       <div className="flex flex-col gap-6">
-        <LoadoutPanel profile={profile} />
+        <LoadoutPanel profile={profile} onBoosterActivated={handleBoosterActivated} />
         <ServiceRecord profile={profile} onChangeGoal={() => setEditing('goal')} />
       </div>
 

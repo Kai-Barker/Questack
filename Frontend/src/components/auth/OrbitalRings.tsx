@@ -8,6 +8,8 @@ import { SPIN_DOWN_MS, SPIN_UP_MS } from '../../config/splash';
 // - "auth": screen-wide rings behind the sign-in screens, centred right of the card
 // - "splash": rings centred on the splash logo, placed inside the hero so they
 //   move and scale with it
+// - "app": three very faint, very slow rings behind every signed-in page, for
+//   the same feel without competing with the content
 //
 // Two ways of spinning:
 // - By default each ring spins with a CSS animation, which the browser runs
@@ -67,6 +69,15 @@ const VARIANTS = {
       { radius: 620, dash: '8 5', opacity: 0.28, seconds: 190 },
       { radius: 820, opacity: 0.22, seconds: 240, reverse: true, highlight: '24 156' },
       { radius: 1040, dash: '1 4', opacity: 0.26, seconds: 300 },
+    ] as Ring[],
+  },
+  app: {
+    centre: { x: '50vw', y: '62vh' },
+    container: 'pointer-events-none fixed inset-0 -z-10 overflow-hidden',
+    rings: [
+      { radius: 440, dash: '1 4', opacity: 0.18, seconds: 360 },
+      { radius: 700, opacity: 0.12, seconds: 420, reverse: true, highlight: '36 324' },
+      { radius: 1000, dash: '8 6', opacity: 0.1, seconds: 480 },
     ] as Ring[],
   },
 };

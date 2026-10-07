@@ -1,22 +1,30 @@
-import { demoProgress, type FlightLogDay, type ProficiencyLevel, type XpWeek } from '../data/demoProgress.js';
 import {
   findProfile,
   listFeaturedIds,
   listInsignia,
-  listSectors,
   saveProfile,
   type InsigniaRecord,
-  type SectorRecord,
   updateUsername,
   usernameTakenByOther,
   type ProfileChanges,
 } from '../models/profileModel.js';
+import { activateBooster, countAiQuestions, countCorrectAnswersByType } from '../models/progressModel.js';
 import { SIGN_IN_MESSAGE } from '../middleware/requireAuth.js';
+import type { ChallengeType, Proficiency } from '../types/content.js';
 import { verifyPassword } from './authService.js';
+import {
+  DEMO_HELMET,
+  loadFlightLog,
+  loadPilotCore,
+  loadXpHistory,
+  type FlightLog,
+  type XpWeek,
+} from './progressService.js';
 import { HttpError } from '../utils/httpError.js';
 
 // The pilot profile (GET /api/profile/me) and its edits. Everything is for the
 // signed-in pilot only: callers pass req.user.userId, never an id from the request.
+// Stats come from the pilot's real progress (services/progressService.ts).
 
 export const MAX_FEATURED = 3;
 
@@ -33,7 +41,15 @@ export interface SectorProgress {
   displayName: string;
   questsCleared: number;
   questsTotal: number;
-  proficiencyLevel: ProficiencyLevel;
+  proficiencyLevel: Proficiency;
+}
+
+export interface Booster {
+  boosterId: number;
+  name: string;
+  xpMultiplier: number;
+  chargesRemaining: number;
+  active: boolean;
 }
 
 // Everything the profile page shows. Never includes the email or password hash.
@@ -46,37 +62,26 @@ export interface PilotProfile {
   totalXp: number;
   levelXp: number;
   levelXpRequired: number;
-  rank: ProficiencyLevel;
+  rank: Proficiency;
   homeSector: string | null;
   stats: { questsCleared: number; bugsSquashed: number; transmissionsDecoded: number };
-  flightLog: { days: FlightLogDay[]; activeDays: number; currentStreak: number; longestStreak: number };
+  flightLog: FlightLog;
   xpHistory: XpWeek[];
   sectors: SectorProgress[];
   goal: SectorProgress | null;
-  favouriteObjective: string;
+  favouriteObjective: string | null; // null until the pilot has cleared an objective
   insignia: Insignia[];
   featuredIds: number[]; // in slot order
   loadout: { helmet: string | null; armour: string | null; insignia: string | null; booster: string | null };
-  activeBuff: { name: string; xpMultiplier: number; questsRemaining: number } | null;
+  boosters: Booster[]; // owned, with charges left; the running one first
 }
 
-function streaks(days: FlightLogDay[]) {
-  let longest = 0;
-  let run = 0;
-  for (const day of days) {
-    run = day.count > 0 ? run + 1 : 0;
-    longest = Math.max(longest, run);
-  }
-  // The run up to today, or up to yesterday if nothing's been cleared yet today
-  let current = 0;
-  let i = days.length - 1;
-  if (days[i]?.count === 0) i--;
-  while (i >= 0 && (days[i]?.count ?? 0) > 0) {
-    current++;
-    i--;
-  }
-  return { activeDays: days.filter((day) => day.count > 0).length, currentStreak: current, longestStreak: longest };
-}
+const OBJECTIVE_LABELS: Record<ChallengeType, string> = {
+  read_and_explain: 'Read and explain',
+  bug_hunt: 'Bug hunt',
+  decode_transmission: 'Decode the transmission',
+  architecture: 'Architecture design',
+};
 
 // unlock_condition is "<stat>>=<number>". Anything else (a typo, or a rule
 // this code doesn't know yet) counts as not earned rather than earned.
@@ -87,62 +92,89 @@ function isEarned(condition: string, stats: Map<string, number>): boolean {
   return value !== undefined && value >= Number(match[2]);
 }
 
-// The insignia and sector lists only change when content is added, so they're
-// kept for a minute instead of being queried on every request. Simultaneous
-// requests share one load.
-const CATALOGUE_TTL_MS = 60 * 1000;
-let catalogueCache: { insignia: InsigniaRecord[]; sectors: SectorRecord[]; loadedAt: number } | null = null;
-let catalogueLoading: Promise<{ insignia: InsigniaRecord[]; sectors: SectorRecord[] }> | null = null;
+// The insignia list only changes when content is added, so it's kept for a
+// minute instead of being queried on every request. Simultaneous requests
+// share one load. (Sectors come from the cached quest catalogue.)
+const INSIGNIA_TTL_MS = 60 * 1000;
+let insigniaCache: { insignia: InsigniaRecord[]; loadedAt: number } | null = null;
+let insigniaLoading: Promise<InsigniaRecord[]> | null = null;
 
-async function loadCatalogue() {
-  if (catalogueCache && Date.now() - catalogueCache.loadedAt < CATALOGUE_TTL_MS) return catalogueCache;
-  catalogueLoading ??= Promise.all([listInsignia(), listSectors()])
-    .then(([insignia, sectors]) => {
-      catalogueCache = { insignia, sectors, loadedAt: Date.now() };
-      return catalogueCache;
+async function loadInsignia(): Promise<InsigniaRecord[]> {
+  if (insigniaCache && Date.now() - insigniaCache.loadedAt < INSIGNIA_TTL_MS) return insigniaCache.insignia;
+  insigniaLoading ??= listInsignia()
+    .then((insignia) => {
+      insigniaCache = { insignia, loadedAt: Date.now() };
+      return insignia;
     })
     .finally(() => {
-      catalogueLoading = null;
+      insigniaLoading = null;
     });
-  return catalogueLoading;
+  return insigniaLoading;
 }
 
-// Loads the pilot's account, progress and insignia, and works out what they've earned
+// Loads the pilot's account and progress, and works out what they've earned
 async function loadPilot(userId: number) {
-  const [record, featuredIds, { insignia: catalogue, sectors: sectorRecords }] = await Promise.all([
+  const [record, featuredIds, catalogue, core, flightLog, xpHistory, answersByType, aiQuestions] = await Promise.all([
     findProfile(userId),
     listFeaturedIds(userId),
-    loadCatalogue(),
+    loadInsignia(),
+    loadPilotCore(userId),
+    loadFlightLog(userId),
+    loadXpHistory(userId),
+    countCorrectAnswersByType(userId),
+    countAiQuestions(userId),
   ]);
   if (!record) throw new HttpError(401, SIGN_IN_MESSAGE);
 
-  const progress = demoProgress(userId);
-  const flightLog = { days: progress.flightLog, ...streaks(progress.flightLog) };
-
-  const sectors: SectorProgress[] = sectorRecords.map((sector) => ({
-    ...sector,
-    ...(progress.sectors[sector.languageId] ?? { questsCleared: 0, questsTotal: 0, proficiencyLevel: 'cadet' }),
+  const sectors: SectorProgress[] = core.catalog.sectors.map((s) => ({
+    languageId: s.languageId,
+    displayName: s.displayName,
+    questsCleared: s.quests.filter((q) => core.clearedIds.has(q.questId)).length,
+    questsTotal: s.quests.length,
+    proficiencyLevel: core.languages.get(s.languageId)?.proficiency ?? 'cadet',
   }));
 
+  const stats = {
+    questsCleared: core.cleared.size,
+    bugsSquashed: answersByType.get('bug_hunt') ?? 0,
+    transmissionsDecoded: answersByType.get('decode_transmission') ?? 0,
+  };
+
   // The stats insignia unlock conditions can refer to
-  const stats = new Map<string, number>([
-    ['quests_cleared', progress.questsCleared],
-    ['bugs_squashed', progress.bugsSquashed],
-    ['transmissions_decoded', progress.transmissionsDecoded],
-    ['ai_questions', progress.aiQuestions],
+  const unlockStats = new Map<string, number>([
+    ['quests_cleared', stats.questsCleared],
+    ['bugs_squashed', stats.bugsSquashed],
+    ['transmissions_decoded', stats.transmissionsDecoded],
+    ['ai_questions', aiQuestions],
     ['longest_streak', flightLog.longestStreak],
-    ['hive_assaults', progress.hiveAssaults],
+    ['hive_assaults', 0], // Hive Assaults aren't built yet
     ['sectors_cleared', sectors.filter((s) => s.questsTotal > 0 && s.questsCleared >= s.questsTotal).length],
-    ['commander_ranks', sectors.filter((s) => s.proficiencyLevel === 'commander').length],
+    ['commander_ranks', sectors.filter((s) => core.languages.get(s.languageId)?.proficiency === 'commander').length],
   ]);
 
   const insignia: Insignia[] = catalogue.map(({ unlockCondition, ...reward }) => ({
     ...reward,
-    earned: isEarned(unlockCondition, stats),
+    earned: isEarned(unlockCondition, unlockStats),
   }));
   const earnedIds = new Set(insignia.filter((i) => i.earned).map((i) => i.rewardId));
 
-  return { record, progress, flightLog, sectors, insignia, earnedIds, featuredIds };
+  // Most-cleared objective type, and the sector with the most XP
+  const favourite = [...answersByType.entries()].sort((a, b) => b[1] - a[1])[0]?.[0];
+  const home = [...core.languages.values()].filter((l) => l.languageXp > 0).sort((a, b) => b.languageXp - a.languageXp)[0];
+
+  return {
+    record,
+    core,
+    flightLog,
+    xpHistory,
+    sectors,
+    stats,
+    insignia,
+    earnedIds,
+    featuredIds,
+    favouriteObjective: favourite ? OBJECTIVE_LABELS[favourite] : null,
+    homeSector: home ? (core.catalog.sectorById.get(home.languageId)?.displayName ?? null) : null,
+  };
 }
 
 type LoadedPilot = Awaited<ReturnType<typeof loadPilot>>;
@@ -152,7 +184,7 @@ export async function buildProfile(userId: number): Promise<PilotProfile> {
 }
 
 function toProfile(pilot: LoadedPilot): PilotProfile {
-  const { record, progress, flightLog, sectors, insignia, earnedIds, featuredIds } = pilot;
+  const { record, core, sectors, insignia, earnedIds, featuredIds } = pilot;
 
   // A title or featured insignia only shows while it's still earned
   const titleInsignia = insignia.find((i) => i.rewardId === record.titleRewardId && i.earned);
@@ -163,27 +195,33 @@ function toProfile(pilot: LoadedPilot): PilotProfile {
     enlistedAt: record.enlistedAt.toISOString(),
     bio: record.bio,
     title,
-    level: progress.level,
-    totalXp: progress.totalXp,
-    levelXp: progress.levelXp,
-    levelXpRequired: progress.levelXpRequired,
-    rank: progress.rank,
-    homeSector: sectors.find((s) => s.languageId === progress.homeLanguageId)?.displayName ?? null,
-    stats: {
-      questsCleared: progress.questsCleared,
-      bugsSquashed: progress.bugsSquashed,
-      transmissionsDecoded: progress.transmissionsDecoded,
-    },
-    flightLog,
-    xpHistory: progress.xpHistory,
+    level: core.level.level,
+    totalXp: core.totalXp,
+    levelXp: core.level.levelXp,
+    levelXpRequired: core.level.levelXpRequired,
+    rank: core.rank,
+    homeSector: pilot.homeSector,
+    stats: pilot.stats,
+    flightLog: pilot.flightLog,
+    xpHistory: pilot.xpHistory,
     sectors,
     goal: sectors.find((s) => s.languageId === record.goalLanguageId) ?? null,
-    favouriteObjective: progress.favouriteObjective,
+    favouriteObjective: pilot.favouriteObjective,
     insignia,
     featuredIds: featuredIds.filter((id) => earnedIds.has(id)),
-    loadout: { ...progress.loadout, insignia: title?.name ?? null },
-    activeBuff: progress.activeBuff,
+    // Helmet is DUMMY gear until the loadout screen exists
+    loadout: { helmet: DEMO_HELMET, armour: null, insignia: title?.name ?? null, booster: core.activeBooster?.name ?? null },
+    boosters: core.boosters,
   };
+}
+
+// Activates one of the pilot's boosters and returns the updated profile.
+// Only one can run at a time; it uses one charge per first-time quest clear.
+export async function startBooster(userId: number, boosterId: number): Promise<PilotProfile> {
+  const outcome = await activateBooster(userId, boosterId);
+  if (outcome === 'busy') throw new HttpError(409, 'A booster is already running. Use it up first, Pilot.');
+  if (outcome === 'not-found') throw new HttpError(404, 'That booster isn’t in your inventory.');
+  return buildProfile(userId);
 }
 
 export interface ProfileUpdate {

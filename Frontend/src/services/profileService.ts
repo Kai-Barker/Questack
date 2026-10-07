@@ -20,3 +20,9 @@ export async function changeCallsign(callsign: string, password: string): Promis
   const res = await api.patch<{ profile: PilotProfile }>('/profile/me/callsign', { callsign, password });
   return res.data.profile;
 }
+
+// Starts one of the pilot's boosters; only one can run at a time
+export async function activateBooster(boosterId: number): Promise<PilotProfile> {
+  const res = await api.post<{ profile: PilotProfile }>(`/profile/me/boosters/${boosterId}/activate`);
+  return res.data.profile;
+}

@@ -11,7 +11,7 @@ export default function GalaxyBackdrop({ deep = false }: { deep?: boolean }) {
         className="fixed inset-0 -z-10 bg-cover bg-center"
         style={{ backgroundImage: `url(${galaxyTexture})` }}
       />
-      <div aria-hidden="true" className={`fixed inset-0 -z-10 ${deep ? 'bg-space-950/[0.88]' : 'bg-space-950/75'}`} />
+      <div aria-hidden="true" className={`fixed inset-0 -z-10 ${deep ? 'bg-void/[0.88]' : 'bg-void/[0.86]'}`} />
     </>
   );
 }

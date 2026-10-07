@@ -1,4 +1,4 @@
-import type { ChallengeContent, ChallengeType, Proficiency } from '../data/questContent.js';
+import type { ChallengeContent, ChallengeType, Proficiency } from '../types/content.js';
 
 // Every prompt the Ship's AI sees is built here, so its persona and rules
 // live in one place. aiService.ts sends these to Gemini.

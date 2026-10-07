@@ -1,7 +1,8 @@
+import { AsyncLocalStorage } from 'node:async_hooks';
 import { z } from 'zod';
-import type { GenerateContentConfig } from '@google/genai';
+import type { GenerateContentConfig, GenerateContentResponse } from '@google/genai';
 import { generate, type ModelName } from '../../config/gemini.js';
-import type { ChallengeContent, Proficiency } from '../../data/questContent.js';
+import type { ChallengeContent, Proficiency } from '../../types/content.js';
 import {
   chatPrompt,
   debriefPrompt,
@@ -17,8 +18,37 @@ import {
 // Ship's AI service: every Gemini feature in the app goes through here.
 // Prompts are built in src/prompts/shipsAi.ts; retries and the Flash ->
 // Flash-Lite fallback come from generate() in src/config/gemini.ts.
-// Pilot answers and pasted code are never logged or stored.
+// Pasted code is never logged or stored. (Answers are saved with the
+// pilot's progress by questService, never written to the server log.)
 // =====================================================================
+
+// ---------------------------------------------------------------------
+// Usage tracking. withUsage() runs a feature and collects the model and
+// token counts of every Gemini call it made (retries included), so the
+// controller can write them to ai_usage_logs. AsyncLocalStorage keeps each
+// request's calls separate without passing a collector through every function.
+// ---------------------------------------------------------------------
+export interface AiUsage {
+  model: ModelName;
+  inputTokens: number;
+  outputTokens: number;
+}
+
+const usageStore = new AsyncLocalStorage<AiUsage[]>();
+
+function recordUsage(model: ModelName, response: GenerateContentResponse) {
+  usageStore.getStore()?.push({
+    model,
+    inputTokens: response.usageMetadata?.promptTokenCount ?? 0,
+    outputTokens: (response.usageMetadata?.candidatesTokenCount ?? 0) + (response.usageMetadata?.thoughtsTokenCount ?? 0),
+  });
+}
+
+export async function withUsage<T>(run: () => Promise<T>): Promise<{ result: T; usage: AiUsage[] }> {
+  const usage: AiUsage[] = [];
+  const result = await usageStore.run(usage, run);
+  return { result, usage };
+}
 
 // Gemini replied, but not with something usable (empty, or JSON in the wrong shape)
 export class AiReplyError extends Error {
@@ -29,7 +59,8 @@ export class AiReplyError extends Error {
 }
 
 async function askForText(model: ModelName, contents: string, config: GenerateContentConfig): Promise<string> {
-  const { response } = await generate(model, contents, config);
+  const { response, modelUsed } = await generate(model, contents, config);
+  recordUsage(modelUsed, response);
   const text = response.text?.trim();
   if (!text) throw new AiReplyError();
   return text;
@@ -43,7 +74,8 @@ async function askForJson<T>(
   schema: z.ZodType<T>,
 ): Promise<T> {
   for (let attempt = 1; attempt <= 2; attempt++) {
-    const { response } = await generate(model, contents, { ...config, responseMimeType: 'application/json' });
+    const { response, modelUsed } = await generate(model, contents, { ...config, responseMimeType: 'application/json' });
+    recordUsage(modelUsed, response);
     try {
       const parsed = schema.safeParse(JSON.parse(response.text ?? ''));
       if (parsed.success) return parsed.data;

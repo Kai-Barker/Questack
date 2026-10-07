@@ -1,4 +1,6 @@
-import { useEffect, useId, useRef } from 'react';
+import { useId, useRef } from 'react';
+import { Link } from 'react-router';
+import { useModalDialog } from '../../hooks/useModalDialog';
 import type { ObjectiveProgress } from '../../hooks/useQuestSession';
 import type { QuestCompletion, QuestDetail } from '../../types/quest';
 import { formatNumber } from '../../utils/format';
@@ -40,12 +42,9 @@ export default function QuestDebriefModal({ quest, objectives, completion, debri
   const dialogRef = useRef<HTMLDialogElement>(null);
   const titleId = useId();
 
-  useEffect(() => {
-    const dialog = dialogRef.current;
-    if (dialog && !dialog.open) dialog.showModal();
-  }, []);
+  useModalDialog(dialogRef);
 
-  const { before, after, buff } = completion;
+  const { before, after, booster, boosterEarned } = completion;
   const levelledUp = after.level > before.level;
   // Bar: existing progress in cyan, this quest's XP in green (all green after a level-up)
   const existing = levelledUp ? 0 : percent(before.levelXp, after.levelXpRequired);
@@ -63,11 +62,14 @@ export default function QuestDebriefModal({ quest, objectives, completion, debri
         <header className="text-center">
           <p className="font-display text-xs font-semibold tracking-[0.25em] text-accent uppercase">Mission debrief</p>
           <h2 id={titleId} className="mt-2 font-display text-4xl font-bold tracking-[0.1em] uppercase">
-            Quest cleared
+            {completion.replay ? 'Quest replayed' : 'Quest cleared'}
           </h2>
           <p className="mt-2 text-sm text-slate-300">
             {quest.title} · {quest.sectorDisplayName} Sector
           </p>
+          {completion.replay && (
+            <p className="mt-1 text-xs text-muted">Replays earn a quarter of the quest’s XP. Boosters only apply to first clears.</p>
+          )}
         </header>
 
         <hr className="my-5 border-line" />
@@ -94,14 +96,14 @@ export default function QuestDebriefModal({ quest, objectives, completion, debri
 
         <div className="flex flex-wrap items-center gap-3">
           <h3 className={`${sectionLabel} flex-1`}>XP earned</h3>
-          {buff && (
+          {booster && (
             <ChamferFrame
               size="sm"
               borderClassName="bg-buff/60"
               innerClassName="flex items-center gap-1.5 bg-buff-deep px-3 py-1 font-display text-[0.65rem] font-semibold tracking-[0.15em] text-buff uppercase"
             >
               <BoltIcon />
-              {buff.name} {buff.xpMultiplier}×
+              {booster.name} {booster.xpMultiplier}×
             </ChamferFrame>
           )}
           <p className="font-display text-3xl font-bold text-buff">+{formatNumber(completion.xpEarned)} XP</p>
@@ -128,7 +130,7 @@ export default function QuestDebriefModal({ quest, objectives, completion, debri
           </span>
         </div>
 
-        {(completion.unlocked.length > 0 || completion.gearFound) && (
+        {(completion.unlocked.length > 0 || boosterEarned) && (
           <>
             <hr className="my-5 border-line" />
             <h3 className={sectionLabel}>Unlocked</h3>
@@ -136,12 +138,23 @@ export default function QuestDebriefModal({ quest, objectives, completion, debri
               {completion.unlocked.map((q) => (
                 <UnlockCard key={q.questId} kicker="New quest" title={q.title} detail={`${sector.displayName} Sector · ${q.concept}`} />
               ))}
-              {completion.gearFound && (
-                <UnlockCard
-                  kicker="Gear found"
-                  title={completion.gearFound.name}
-                  detail={completion.gearFound.slot.charAt(0).toUpperCase() + completion.gearFound.slot.slice(1)}
-                />
+              {boosterEarned && (
+                <ChamferFrame size="md" borderClassName="bg-buff/50" innerClassName="h-full bg-buff-deep px-4 py-3">
+                  <p className="flex items-center gap-1.5 font-display text-[0.65rem] font-semibold tracking-[0.2em] text-buff uppercase">
+                    <BoltIcon /> Booster acquired
+                  </p>
+                  <p className="mt-1 font-display text-base font-semibold">{boosterEarned.name}</p>
+                  <p className="text-xs text-slate-300">
+                    Activate it from your{' '}
+                    <Link
+                      to="/profile"
+                      className="font-semibold text-buff underline-offset-2 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-buff"
+                    >
+                      Profile
+                    </Link>{' '}
+                    to boost your next quests.
+                  </p>
+                </ChamferFrame>
               )}
             </div>
           </>

@@ -1,6 +1,6 @@
 import { Router } from 'express';
-import { getMyProfile, updateMyCallsign, updateMyProfile } from '../controllers/profileController.js';
-import { callsignLimiter, profileReadLimiter, profileUpdateLimiter } from '../middleware/rateLimiters.js';
+import { activateMyBooster, getMyProfile, updateMyCallsign, updateMyProfile } from '../controllers/profileController.js';
+import { callsignLimiter, pilotReadLimiter, profileUpdateLimiter, progressWriteLimiter } from '../middleware/rateLimiters.js';
 
 // The signed-in pilot's own profile, mounted at /api/profile behind requireAuth.
 // There are deliberately no routes that take a user id: pilots can only ever
@@ -13,8 +13,9 @@ profileRoutes.use((_req, res, next) => {
   next();
 });
 
-profileRoutes.get('/me', profileReadLimiter, getMyProfile);
+profileRoutes.get('/me', pilotReadLimiter, getMyProfile);
 profileRoutes.patch('/me', profileUpdateLimiter, updateMyProfile);
 profileRoutes.patch('/me/callsign', callsignLimiter, updateMyCallsign);
+profileRoutes.post('/me/boosters/:boosterId/activate', progressWriteLimiter, activateMyBooster);
 
 export default profileRoutes;

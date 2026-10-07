@@ -21,11 +21,6 @@ interface RewardRow extends RowDataPacket {
   unlock_condition: string;
 }
 
-interface SectorRow extends RowDataPacket {
-  language_id: number;
-  display_name: string;
-}
-
 export interface ProfileRecord {
   userId: number;
   username: string;
@@ -41,11 +36,6 @@ export interface InsigniaRecord {
   name: string;
   description: string;
   unlockCondition: string;
-}
-
-export interface SectorRecord {
-  languageId: number;
-  displayName: string;
 }
 
 export async function findProfile(userId: number): Promise<ProfileRecord | null> {
@@ -85,13 +75,6 @@ export async function listFeaturedIds(userId: number): Promise<number[]> {
     [userId],
   );
   return rows.map((row) => row.reward_id as number);
-}
-
-export async function listSectors(): Promise<SectorRecord[]> {
-  const [rows] = await pool.execute<SectorRow[]>(
-    'SELECT language_id, display_name FROM languages ORDER BY display_order, language_id',
-  );
-  return rows.map((row) => ({ languageId: row.language_id, displayName: row.display_name }));
 }
 
 export interface ProfileChanges {

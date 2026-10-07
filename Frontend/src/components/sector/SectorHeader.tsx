@@ -31,7 +31,8 @@ export default function SectorHeader({ sector }: { sector: SectorDetail }) {
           </nav>
 
           <div className="mt-2 flex flex-wrap items-end gap-x-8 gap-y-3">
-            <h1 className="font-display text-3xl font-bold tracking-[0.1em] whitespace-nowrap uppercase">
+            {/* Smaller and allowed to wrap on phones, where "JavaScript Sector" is wider than the screen */}
+            <h1 className="font-display text-2xl font-bold tracking-[0.1em] uppercase sm:text-3xl sm:whitespace-nowrap">
               {sector.displayName} Sector
               {/* The real term next to the themed name, so beginners know what the sector is */}
               <span className="ml-3 text-base font-medium tracking-normal text-muted normal-case">

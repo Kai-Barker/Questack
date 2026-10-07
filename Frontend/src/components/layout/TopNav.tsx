@@ -95,7 +95,8 @@ export default function TopNav({ slotRef, slotInUse }: TopNavProps) {
 
         {pilot && (
           <div className="ml-auto flex items-center gap-4">
-            {pilot.activeBuff && (
+            {/* Only while a booster is activated (on the Profile) */}
+            {pilot.activeBooster && (
               <ChamferFrame
                 size="sm"
                 borderClassName="bg-buff/60"
@@ -103,7 +104,8 @@ export default function TopNav({ slotRef, slotInUse }: TopNavProps) {
                 className="hidden sm:block"
               >
                 <BoltIcon />
-                {pilot.activeBuff.xpMultiplier}× XP active
+                {pilot.activeBooster.xpMultiplier}× XP booster
+                <span className="sr-only">: {pilot.activeBooster.name} active</span>
               </ChamferFrame>
             )}
 

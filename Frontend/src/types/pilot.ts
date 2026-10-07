@@ -1,5 +1,5 @@
-// Shape of GET /api/pilot/me (not built yet, see services/pilotService.ts).
-// Fields map to the users, user_language_progress and user_rewards tables,
+// Shape of GET /api/pilot/me (Backend/src/services/progressService.ts).
+// Fields map to the users, user_language_progress and user_boosters tables,
 // camelCased by the backend.
 
 // Matches the proficiency_level enum in user_language_progress
@@ -11,10 +11,11 @@ export interface GearItem {
   name: string;
 }
 
-export interface ActiveBuff {
+// A booster the pilot has activated on their profile (e.g. Overdrive Core)
+export interface ActiveBooster {
   name: string;
   xpMultiplier: number;
-  questsRemaining: number;
+  questsRemaining: number; // first-time quest clears it will still boost
 }
 
 export interface PilotLoadout {
@@ -36,6 +37,6 @@ export interface PilotSummary {
 
   // Nice-to-have features: their panels hide themselves when these are missing
   currentStreak?: number;
-  activeBuff?: ActiveBuff;
+  activeBooster?: ActiveBooster; // only while one is activated
   loadout?: PilotLoadout;
 }

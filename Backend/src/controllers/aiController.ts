@@ -1,13 +1,15 @@
 import type { Request, Response } from 'express';
 import { z } from 'zod';
-import { findChallenge, findQuest, type ChallengeContent } from '../data/questContent.js';
+import { logAiUsage, type AiFeature } from '../models/aiUsageModel.js';
 import {
   decodeTransmission,
   evaluateAnswer,
   getHint,
   mentorChat,
+  withUsage,
   writeDebrief,
 } from '../services/ai/aiService.js';
+import { checkCanAnswer, objectiveAccess, requireCompleted, saveAnswer } from '../services/questService.js';
 import { HttpError } from '../utils/httpError.js';
 
 // Request bodies are validated before anything reaches Gemini.
@@ -40,6 +42,7 @@ const evaluateBody = z.object({
   proficiency,
   answer: answerText,
   selectedLine: z.number().int().positive().optional(),
+  hintsUsed: z.number().int().min(0).max(3).optional(),
   pastedCode,
 });
 
@@ -70,42 +73,77 @@ function parse<T>(schema: z.ZodType<T>, body: unknown): T {
   return result.data;
 }
 
-function challengeOr404(id: number): ChallengeContent {
-  const challenge = findChallenge(id);
-  if (!challenge) throw new HttpError(404, 'Unknown objective.');
-  return challenge;
+// Runs a Ship's AI feature and logs its token usage. A failed log never
+// fails the pilot's request: the reply has already been paid for.
+async function tracked<T>(userId: number, feature: AiFeature, run: () => Promise<T>): Promise<T> {
+  const { result, usage } = await withUsage(run);
+  await logAiUsage(userId, feature, usage).catch((err: unknown) => console.error('AI usage log failed:', err));
+  return result;
 }
+
+// requireAuth runs first, so req.user is always set. Every call checks the
+// objective belongs to a quest this pilot has unlocked.
 
 export async function hint(req: Request, res: Response) {
   const body = parse(hintBody, req.body);
-  const challenge = challengeOr404(body.challengeId);
-  res.json({ hint: await getHint(challenge, body.proficiency, body.tier, body.answerDraft, body.pastedCode) });
+  const userId = req.user!.userId;
+  const { content } = await objectiveAccess(userId, body.challengeId);
+  const reply = await tracked(userId, 'hint', () =>
+    getHint(content, body.proficiency, body.tier, body.answerDraft, body.pastedCode),
+  );
+  res.json({ hint: reply });
 }
 
 export async function chat(req: Request, res: Response) {
   const body = parse(chatBody, req.body);
-  const challenge = challengeOr404(body.challengeId);
-  res.json({ reply: await mentorChat(challenge, body.proficiency, body.messages, body.pastedCode) });
+  const userId = req.user!.userId;
+  const { content } = await objectiveAccess(userId, body.challengeId);
+  const reply = await tracked(userId, 'mentor_chat', () =>
+    mentorChat(content, body.proficiency, body.messages, body.pastedCode),
+  );
+  res.json({ reply });
 }
 
+// Marks an answer and records it in the pilot's progress. Objectives must be
+// answered in order, and the server's mark is the only one that counts.
 export async function evaluate(req: Request, res: Response) {
   const body = parse(evaluateBody, req.body);
-  const challenge = challengeOr404(body.challengeId);
-  if (challenge.challengeType === 'decode_transmission' && !body.pastedCode?.trim()) {
+  const userId = req.user!.userId;
+  const access = await objectiveAccess(userId, body.challengeId);
+  if (access.challenge.type === 'decode_transmission' && !body.pastedCode?.trim()) {
     throw new HttpError(400, 'Paste the intercepted code first.');
   }
-  res.json(await evaluateAnswer(challenge, body.proficiency, body.answer, body.selectedLine, body.pastedCode));
+  // Checked before the AI call, so a turned-away answer costs nothing
+  await checkCanAnswer(userId, access);
+
+  const evaluation = await tracked(userId, 'answer_evaluation', () =>
+    evaluateAnswer(access.content, body.proficiency, body.answer, body.selectedLine, body.pastedCode),
+  );
+  await saveAnswer(userId, access, {
+    text: body.answer,
+    feedback: evaluation.feedback,
+    correct: evaluation.correct,
+    hintsUsed: body.hintsUsed ?? 0,
+  });
+  res.json(evaluation);
 }
 
 export async function decode(req: Request, res: Response) {
   const body = parse(decodeBody, req.body);
-  const challenge = challengeOr404(body.challengeId);
-  res.json({ sections: await decodeTransmission(challenge, body.proficiency, body.code) });
+  const userId = req.user!.userId;
+  const { content } = await objectiveAccess(userId, body.challengeId);
+  const sections = await tracked(userId, 'decode_transmission', () =>
+    decodeTransmission(content, body.proficiency, body.code),
+  );
+  res.json({ sections });
 }
 
 export async function debrief(req: Request, res: Response) {
   const body = parse(debriefBody, req.body);
-  const quest = findQuest(body.questId);
-  if (!quest) throw new HttpError(404, 'Unknown quest.');
-  res.json({ debrief: await writeDebrief(quest.questTitle, quest.language, body.proficiency, body.objectives) });
+  const userId = req.user!.userId;
+  const quest = await requireCompleted(userId, body.questId);
+  const text = await tracked(userId, 'debrief', () =>
+    writeDebrief(quest.title, quest.language, body.proficiency, body.objectives),
+  );
+  res.json({ debrief: text });
 }

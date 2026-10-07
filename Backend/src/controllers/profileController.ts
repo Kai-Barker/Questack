@@ -1,6 +1,7 @@
 import type { Request, Response } from 'express';
 import { z } from 'zod';
-import { buildProfile, changeCallsign, MAX_FEATURED, updateProfile } from '../services/profileService.js';
+import { buildProfile, changeCallsign, MAX_FEATURED, startBooster, updateProfile } from '../services/profileService.js';
+import { HttpError } from '../utils/httpError.js';
 import { callsign, parse } from '../utils/validation.js';
 
 // Control characters (\p{Cc}), invisible format characters such as zero-width
@@ -54,4 +55,10 @@ export async function updateMyCallsign(req: Request, res: Response) {
   const body = parse(callsignBody, req.body);
   await changeCallsign(req.user!.userId, body.callsign, body.password);
   res.json({ profile: await buildProfile(req.user!.userId) });
+}
+
+export async function activateMyBooster(req: Request, res: Response) {
+  const boosterId = z.coerce.number().int().positive().max(2_147_483_647).safeParse(req.params.boosterId);
+  if (!boosterId.success) throw new HttpError(404, 'That booster isn’t in your inventory.');
+  res.json({ profile: await startBooster(req.user!.userId, boosterId.data) });
 }

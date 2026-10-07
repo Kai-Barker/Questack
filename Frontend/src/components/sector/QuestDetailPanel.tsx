@@ -1,6 +1,7 @@
 import { Link } from 'react-router';
 import { usePilot } from '../../hooks/usePilot';
 import type { SectorQuest } from '../../types/sector';
+import { REPLAY_XP_SHARE } from '../../utils/progress';
 import { challengeLabel, questKind, type QuestState } from '../../utils/quests';
 import Button from '../ui/Button';
 import ChamferFrame from '../ui/ChamferFrame';
@@ -38,8 +39,11 @@ export default function QuestDetailPanel({ quest, state, quests }: QuestDetailPa
   const status = statusDisplay[state];
   const prerequisites = quests.filter((q) => quest.prerequisiteIds.includes(q.questId));
   const blockers = prerequisites.filter((q) => !q.cleared);
-  const buff = pilot?.activeBuff;
-  const showLoadout = Boolean(buff || pilot?.loadout);
+  const booster = pilot?.activeBooster;
+  const showLoadout = Boolean(booster || pilot?.loadout);
+  // Boosters only apply to first clears; a replay earns a share of the XP
+  const boosted = booster && !quest.cleared ? booster : undefined;
+  const replayXp = Math.round(quest.xpReward * REPLAY_XP_SHARE);
 
   return (
     <Panel label="Selected quest" className="h-full" bodyClassName="flex flex-col">
@@ -83,13 +87,18 @@ export default function QuestDetailPanel({ quest, state, quests }: QuestDetailPa
 
       <div className="flex items-baseline justify-between">
         <h4 className={sectionLabel}>XP reward</h4>
-        {buff ? (
+        {quest.cleared ? (
+          <p className="font-display font-semibold">
+            <span className="text-lg text-accent">{replayXp} XP</span>
+            <span className="ml-2 text-xs tracking-[0.15em] text-muted uppercase">Replay</span>
+          </p>
+        ) : boosted ? (
           <p className="font-display font-semibold">
             <s className="mr-2 text-sm text-muted">{quest.xpReward}</s>
-            <span className="text-lg text-buff">{quest.xpReward * buff.xpMultiplier} XP</span>
+            <span className="text-lg text-buff">{quest.xpReward * boosted.xpMultiplier} XP</span>
             <span className="sr-only">
               {' '}
-              (boosted from {quest.xpReward} by {buff.name})
+              (boosted from {quest.xpReward} by {boosted.name})
             </span>
           </p>
         ) : (
@@ -111,11 +120,11 @@ export default function QuestDetailPanel({ quest, state, quests }: QuestDetailPa
         <p className="mt-2 text-sm text-slate-300">None. Open to every pilot.</p>
       )}
 
-      {/* Loadout is a nice-to-have: hidden when the backend sends no gear or buff */}
+      {/* Loadout is a nice-to-have: hidden when the backend sends no gear or booster */}
       {showLoadout && (
         <>
           <h4 className={`${sectionLabel} mt-5`}>Loadout</h4>
-          {buff && (
+          {booster && (
             <ChamferFrame
               size="md"
               borderClassName="bg-buff/60"
@@ -125,10 +134,10 @@ export default function QuestDetailPanel({ quest, state, quests }: QuestDetailPa
               <BoltIcon className="shrink-0 text-buff" />
               <span className="flex-1">
                 <span className="block font-display text-xs font-semibold tracking-[0.15em] text-buff uppercase">
-                  {buff.name}
+                  {booster.name}
                 </span>
                 <span className="block text-xs text-slate-300">
-                  {buff.xpMultiplier}× XP · {buff.questsRemaining} {buff.questsRemaining === 1 ? 'use' : 'uses'} left
+                  {booster.xpMultiplier}× XP · {booster.questsRemaining} {booster.questsRemaining === 1 ? 'use' : 'uses'} left
                 </span>
               </span>
               <Link

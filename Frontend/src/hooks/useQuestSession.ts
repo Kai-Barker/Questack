@@ -1,4 +1,4 @@
-import { useReducer } from 'react';
+import { useEffect, useReducer, useRef } from 'react';
 import {
   CommsError,
   COMMS_DOWN_MESSAGE,
@@ -131,16 +131,32 @@ function reducer(state: SessionState, action: Action): SessionState {
   }
 }
 
+const pad = (n: number) => String(n).padStart(2, '0');
+
+const isClearedOnServer = (quest: QuestDetail, challengeId: number) =>
+  quest.progress.clearedChallengeIds.includes(challengeId);
+
+const everyObjectiveCleared = (quest: QuestDetail) =>
+  quest.challenges.length > 0 && quest.challenges.every((c) => isClearedOnServer(quest, c.challengeId));
+
 const FALLBACK_DEBRIEF =
   "Strong work, Pilot. The Ship's AI couldn't file a full debrief this time, but every objective is logged.";
 
 function initialState(quest: QuestDetail): SessionState {
-  const first = quest.challenges[0];
+  // Resume an unfinished attempt: objectives the server has already marked
+  // cleared stay cleared, and the pilot starts on the first one left
+  const firstLeft = quest.challenges.findIndex((c) => !isClearedOnServer(quest, c.challengeId));
+  // Every objective cleared but the quest not filed yet (e.g. the connection
+  // dropped): the session files it on load, see useQuestSession below
+  const allCleared = firstLeft === -1 && quest.challenges.length > 0;
+  const resumeAt = allCleared ? quest.challenges.length - 1 : Math.max(0, firstLeft);
+  const current = quest.challenges[resumeAt];
+  const resuming = resumeAt > 0 || allCleared;
   return {
-    current: 0,
-    viewing: 0,
+    current: resumeAt,
+    viewing: resumeAt,
     objectives: quest.challenges.map((_, i) => ({
-      status: i === 0 ? 'current' : 'locked',
+      status: allCleared || i < resumeAt ? 'cleared' : i === resumeAt ? 'current' : 'locked',
       attempts: 0,
       hintsUsed: 0,
       answer: '',
@@ -152,7 +168,11 @@ function initialState(quest: QuestDetail): SessionState {
         id: 0,
         from: 'ai',
         tone: 'info',
-        text: `Comms link established, Pilot. Objective 01 is ${first ? challengeLabel(first.challengeType).toLowerCase() : 'ready'}. Ask me anything along the way: I'll give you hints and questions, never the answer.`,
+        text: allCleared
+          ? 'Welcome back, Pilot. Every objective is logged: filing the quest as cleared now.'
+          : resuming
+          ? `Welcome back, Pilot. Your progress is logged: picking up at objective ${pad(resumeAt + 1)}, ${current ? challengeLabel(current.challengeType).toLowerCase() : 'ready'}.`
+          : `Comms link established, Pilot. Objective 01 is ${current ? challengeLabel(current.challengeType).toLowerCase() : 'ready'}. Ask me anything along the way: I'll give you hints and questions, never the answer.`,
       },
     ],
     nextMessageId: 1,
@@ -164,8 +184,6 @@ function initialState(quest: QuestDetail): SessionState {
     debriefOpen: false,
   };
 }
-
-const pad = (n: number) => String(n).padStart(2, '0');
 
 // Only these tones are real conversation worth sending back as context
 const CONTEXT_TONES: CommsTone[] = ['chat', 'hint', 'success', 'retry', 'decode'];
@@ -260,26 +278,42 @@ export function useQuestSession(quest: QuestDetail) {
 
     dispatch({ type: 'busy', busy: 'complete' });
     try {
-      const [completion, debrief] = await Promise.all([
-        completeQuest(quest.questId, results),
-        requestDebrief({
-          questId: quest.questId,
-          proficiency: state.explainAs,
-          objectives: results.map((r, i) => ({
-            challengeType: quest.challenges[i]?.challengeType ?? 'read_and_explain',
-            attempts: Math.max(1, r.attempts),
-            hintsUsed: r.hintsUsed,
-          })),
-        }).catch(() => FALLBACK_DEBRIEF),
-      ]);
+      // The completion must be recorded before the debrief: the server only
+      // writes a debrief for a quest the pilot has cleared
+      const completion = await completeQuest(quest.questId);
+      const debrief = await requestDebrief({
+        questId: quest.questId,
+        proficiency: state.explainAs,
+        objectives: results.map((r, i) => ({
+          challengeType: quest.challenges[i]?.challengeType ?? 'read_and_explain',
+          attempts: Math.max(1, r.attempts),
+          hintsUsed: r.hintsUsed,
+        })),
+      }).catch(() => FALLBACK_DEBRIEF);
       dispatch({ type: 'completed', completion, debrief });
       reloadPilot(); // the nav bar picks up the new XP and level
     } catch {
-      addMessages({ from: 'ai', tone: 'error', text: "Couldn't log the quest as cleared. Try submitting again, Pilot." });
+      // Every answer is already saved, so reopening the quest files it again
+      addMessages({
+        from: 'ai',
+        tone: 'error',
+        text: "Couldn't file the quest as cleared. Your answers are saved: refresh the page to try again, Pilot.",
+      });
     } finally {
       dispatch({ type: 'busy', busy: null });
     }
   }
+
+  // Files a quest whose objectives were all cleared before this visit. The ref
+  // stops React's development double-run of effects sending it twice.
+  const filedOnLoad = useRef(false);
+  useEffect(() => {
+    if (filedOnLoad.current || !everyObjectiveCleared(quest)) return;
+    filedOnLoad.current = true;
+    void finishQuest(quest.challenges.length - 1);
+    // Only on load
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   async function submitAnswer() {
     if (state.busy || !challenge || !progress || progress.status !== 'current') return;
@@ -292,6 +326,7 @@ export function useQuestSession(quest: QuestDetail) {
         proficiency: state.explainAs,
         answer,
         selectedLine: progress.markedLine,
+        hintsUsed: progress.hintsUsed,
         pastedCode,
       }),
     );

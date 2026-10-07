@@ -7,6 +7,7 @@
 
   /* Surfaces */
   --color-space-950: #0b1120;
+  --color-void: #050a17; /* near-black with a hint of blue: the overlay that darkens the galaxy backdrop */
   --color-panel: #111a2e;
   --color-panel-raised: #17223a;
   --color-line: #1f2b45;

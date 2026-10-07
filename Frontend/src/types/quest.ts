@@ -2,7 +2,7 @@ import type { Difficulty } from './dashboard';
 import type { ProficiencyLevel } from './pilot';
 import type { ChallengeType } from './sector';
 
-// Shape of GET /api/quests/:id (not built yet, see services/questService.ts).
+// Shape of GET /api/quests/:id (Backend/src/services/questService.ts).
 //
 // answer_key, marking_criteria and bug_line are deliberately NOT part of this
 // response. The backend marks answers itself, so they never need to reach the
@@ -34,13 +34,8 @@ export interface QuestDetail {
   storyText: string;
   xpReward: number;
   challenges: QuestChallenge[];
-}
-
-// Sent to POST /api/quests/:id/complete (not built yet, see services/questService.ts)
-export interface ObjectiveResult {
-  challengeId: number;
-  attempts: number;
-  hintsUsed: number;
+  // An unfinished attempt picks up where the pilot left off
+  progress: { clearedChallengeIds: number[] };
 }
 
 export interface LevelSnapshot {
@@ -49,15 +44,16 @@ export interface LevelSnapshot {
   levelXpRequired: number;
 }
 
-// What the Mission Debrief shows once a quest is cleared
+// What POST /api/quests/:id/complete returns: everything the Mission Debrief shows
 export interface QuestCompletion {
   baseXp: number;
-  xpEarned: number; // baseXp with any buff applied
-  buff?: { name: string; xpMultiplier: number };
+  xpEarned: number; // first clear: baseXp with any booster applied; replay: a share of it
+  replay: boolean; // the pilot had cleared this quest before
+  booster?: { name: string; xpMultiplier: number }; // the booster that boosted this clear
+  boosterEarned?: { name: string }; // a new booster for the inventory
   before: LevelSnapshot;
   after: LevelSnapshot;
   sector: { displayName: string; percentBefore: number; percentAfter: number };
   unlocked: { questId: number; title: string; concept: string }[];
-  gearFound?: { slot: 'helmet' | 'armour' | 'insignia'; name: string }; // nice-to-have
   nextQuestId: number | null;
 }

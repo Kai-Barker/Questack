@@ -17,11 +17,12 @@ function GearSlot({ slot, item }: { slot: string; item?: GearItem }) {
   );
 }
 
-// Avatar, gear and active buff. These are nice-to-have features, so the panel
-// hides itself when the backend sends neither a loadout nor a buff.
+// Avatar, gear and active booster. These are nice-to-have features, so the
+// panel hides itself when the backend sends neither a loadout nor a booster.
+// The booster only shows once the pilot has activated it on their Profile.
 export default function PilotLoadoutPanel({ pilot }: { pilot: PilotSummary }) {
-  const { loadout, activeBuff } = pilot;
-  if (!loadout && !activeBuff) return null;
+  const { loadout, activeBooster } = pilot;
+  if (!loadout && !activeBooster) return null;
 
   return (
     <Panel label="Pilot">
@@ -45,9 +46,9 @@ export default function PilotLoadoutPanel({ pilot }: { pilot: PilotSummary }) {
         Callsign <span className="ml-1">{pilot.callsign}</span>
       </p>
 
-      {activeBuff && (
+      {activeBooster && (
         <>
-          <p className="mt-3 font-display text-xs tracking-[0.2em] text-muted uppercase">Active buff</p>
+          <p className="mt-3 font-display text-xs tracking-[0.2em] text-muted uppercase">Active booster</p>
           <ChamferFrame
             size="md"
             borderClassName="bg-buff/60"
@@ -57,10 +58,11 @@ export default function PilotLoadoutPanel({ pilot }: { pilot: PilotSummary }) {
             <BoltIcon className="shrink-0 text-buff" />
             <span>
               <span className="block font-display text-xs font-semibold tracking-[0.15em] text-buff uppercase">
-                {activeBuff.name}
+                {activeBooster.name}
               </span>
               <span className="block text-xs text-slate-300">
-                {activeBuff.xpMultiplier}× XP · {activeBuff.questsRemaining} more {activeBuff.questsRemaining === 1 ? 'quest' : 'quests'}
+                {activeBooster.xpMultiplier}× XP · {activeBooster.questsRemaining} more{' '}
+                {activeBooster.questsRemaining === 1 ? 'quest' : 'quests'}
               </span>
             </span>
           </ChamferFrame>

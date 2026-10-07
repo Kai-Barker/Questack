@@ -70,26 +70,49 @@ export const healthLimiter = rateLimit({
   message: limited('Too many status checks from this terminal. Try again in a minute.'),
 });
 
-// Runs before requireAuth on /api/profile, so a flood of requests is turned
-// away by IP before each one costs a database lookup to check the session
-export const profileIpLimiter = rateLimit({
+// Runs before requireAuth on every signed-in endpoint (/api/pilot,
+// /dashboard, /sectors, /quests, /profile, /ai), so a flood of requests is
+// turned away by IP before each one costs a database lookup to check the
+// session. Generous, because a classroom of pilots can share one IP.
+export const appIpLimiter = rateLimit({
   ...shared,
   windowMs: MINUTE,
-  limit: 120,
-  keyGenerator: (req) => `profile-ip:${clientIp(req)}`,
+  limit: 300,
+  keyGenerator: (req) => `app-ip:${clientIp(req)}`,
   message: limited('Too many requests from this terminal. Try again in a minute.'),
 });
 
-// Profile: behind requireAuth, so these count per signed-in pilot
+// The rest run behind requireAuth, so they count per signed-in pilot
 const perPilot = (prefix: string) => (req: Request) =>
   req.user ? `${prefix}:${req.user.userId}` : `${prefix}-ip:${clientIp(req)}`;
 
-export const profileReadLimiter = rateLimit({
+// Every GET a pilot makes (map, sectors, quests, profile) shares this budget.
+// Normal use is a few requests per screen.
+export const pilotReadLimiter = rateLimit({
   ...shared,
   windowMs: MINUTE,
-  limit: 60,
-  keyGenerator: perPilot('profile-read'),
-  message: limited('Too many profile requests. Try again in a minute.'),
+  limit: 120,
+  keyGenerator: perPilot('pilot-read'),
+  message: limited('Too many requests, Pilot. Try again in a minute.'),
+});
+
+// Small progress changes: sector rank, activating a booster
+export const progressWriteLimiter = rateLimit({
+  ...shared,
+  windowMs: 15 * MINUTE,
+  limit: 30,
+  keyGenerator: perPilot('progress-write'),
+  message: limited('Too many changes. Wait 15 minutes, then try again.'),
+});
+
+// Clearing a quest takes several AI-marked answers first, so 20 in 15
+// minutes is far more than anyone can legitimately reach
+export const questCompleteLimiter = rateLimit({
+  ...shared,
+  windowMs: 15 * MINUTE,
+  limit: 20,
+  keyGenerator: perPilot('quest-complete'),
+  message: limited('Too many quest completions. Wait a few minutes, then try again.'),
 });
 
 export const profileUpdateLimiter = rateLimit({

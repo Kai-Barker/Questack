@@ -29,6 +29,7 @@ export interface EvaluateRequest {
   proficiency: ProficiencyLevel;
   answer: string;
   selectedLine?: number;
+  hintsUsed?: number; // saved with the answer in the pilot's progress
   pastedCode?: string;
 }
 

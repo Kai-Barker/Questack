@@ -50,11 +50,19 @@ export interface PilotProfile {
   xpHistory: XpWeek[];
   sectors: SectorProgress[];
   goal: SectorProgress | null;
-  favouriteObjective: string;
+  favouriteObjective: string | null; // null until the pilot has cleared an objective
   insignia: Insignia[];
   featuredIds: number[]; // in slot order, at most 3
   loadout: { helmet: string | null; armour: string | null; insignia: string | null; booster: string | null };
-  activeBuff: { name: string; xpMultiplier: number; questsRemaining: number } | null;
+  boosters: Booster[]; // owned, with charges left; the running one first
+}
+
+export interface Booster {
+  boosterId: number;
+  name: string;
+  xpMultiplier: number;
+  chargesRemaining: number;
+  active: boolean;
 }
 
 // PATCH /api/profile/me: only the fields being changed

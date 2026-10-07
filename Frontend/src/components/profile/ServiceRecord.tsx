@@ -31,7 +31,7 @@ export default function ServiceRecord({ profile, onChangeGoal }: ServiceRecordPr
         <Row label="Longest streak">
           {flightLog.longestStreak} {flightLog.longestStreak === 1 ? 'day' : 'days'}
         </Row>
-        <Row label="Favourite objective">{profile.favouriteObjective}</Row>
+        <Row label="Favourite objective">{profile.favouriteObjective ?? '—'}</Row>
       </dl>
 
       <ChamferFrame size="md" className="mt-4" innerClassName="bg-space-950 px-4 py-3">

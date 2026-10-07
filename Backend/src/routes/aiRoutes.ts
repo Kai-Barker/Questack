@@ -1,9 +1,8 @@
 import { Router } from 'express';
 import { chat, debrief, decode, evaluate, hint } from '../controllers/aiController.js';
 
-// Ship's AI endpoints, mounted at /api/ai.
-// No auth yet (week 3): once there is, these need the logged-in user so
-// every call can be written to ai_usage_logs and rate limited.
+// Ship's AI endpoints, mounted at /api/ai behind requireAuth and the AI rate
+// limit. Every call is written to ai_usage_logs (see aiController).
 const aiRoutes = Router();
 
 aiRoutes.post('/hint', hint);
