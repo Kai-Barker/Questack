@@ -4,7 +4,7 @@ import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import { ApiError } from '@google/genai';
 import { pool } from './config/db.js';
-import { aiLimiter } from './middleware/rateLimiters.js';
+import { aiLimiter, healthLimiter } from './middleware/rateLimiters.js';
 import { requireAuth } from './middleware/requireAuth.js';
 import aiRoutes from './routes/aiRoutes.js';
 import authRoutes from './routes/authRoutes.js';
@@ -33,15 +33,49 @@ app.use(express.json({ limit: '100kb' }));
 // Reads the httpOnly session cookie (see src/config/auth.ts)
 app.use(cookieParser());
 
-app.get('/api/health', async (_req, res) => {
-  let database = 'connected';
+// Database status for the health check. Public endpoints must never let
+// traffic turn into database load, so:
+// - the result is reused for DB_STATUS_TTL_MS, and simultaneous requests share
+//   one in-flight check (at most one query every few seconds, however busy)
+// - a hanging database counts as unreachable after DB_HEALTH_TIMEOUT_MS, so the
+//   splash screen can tell it apart from the backend being down
+// The route itself is also rate limited per IP (healthLimiter).
+const DB_HEALTH_TIMEOUT_MS = 5000;
+const DB_STATUS_TTL_MS = 5000;
+type DbStatus = 'connected' | 'unreachable';
+let cachedDbStatus: { status: DbStatus; checkedAt: number } | null = null;
+let dbCheckInFlight: Promise<DbStatus> | null = null;
+
+async function checkDatabase(): Promise<DbStatus> {
+  let timer: NodeJS.Timeout | undefined;
   try {
-    await pool.query('SELECT 1');
+    await Promise.race([
+      pool.query('SELECT 1'),
+      new Promise((_, reject) => {
+        timer = setTimeout(() => reject(new Error('Database check timed out')), DB_HEALTH_TIMEOUT_MS);
+      }),
+    ]);
+    return 'connected';
   } catch (err) {
     console.error('Database health check failed:', err);
-    database = 'unreachable';
+    return 'unreachable';
+  } finally {
+    clearTimeout(timer);
   }
+}
 
+async function databaseStatus(): Promise<DbStatus> {
+  if (cachedDbStatus && Date.now() - cachedDbStatus.checkedAt < DB_STATUS_TTL_MS) return cachedDbStatus.status;
+  dbCheckInFlight ??= checkDatabase().then((status) => {
+    cachedDbStatus = { status, checkedAt: Date.now() };
+    dbCheckInFlight = null;
+    return status;
+  });
+  return dbCheckInFlight;
+}
+
+app.get('/api/health', healthLimiter, async (_req, res) => {
+  const database = await databaseStatus();
   res.status(database === 'connected' ? 200 : 503).json({
     status: database === 'connected' ? 'ok' : 'degraded',
     database,

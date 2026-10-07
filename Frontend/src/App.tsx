@@ -1,7 +1,8 @@
-import { createBrowserRouter, Outlet } from 'react-router';
+import { createBrowserRouter } from 'react-router';
 import { RouterProvider } from 'react-router/dom';
 import AuthShell from './components/auth/AuthShell';
 import GuestOnly from './components/auth/GuestOnly';
+import BootGate from './components/boot/BootGate';
 import RequireAuth from './components/auth/RequireAuth';
 import AppLayout from './components/layout/AppLayout';
 import { AuthProvider } from './context/AuthProvider';
@@ -12,10 +13,11 @@ import LoginPage from './pages/LoginPage';
 import PlaceholderPage from './pages/PlaceholderPage';
 import SectorPage from './pages/SectorPage';
 
+// Session first, then the splash/boot sequence, then whichever page was asked for
 function AuthRoot() {
   return (
     <AuthProvider>
-      <Outlet />
+      <BootGate />
     </AuthProvider>
   );
 }

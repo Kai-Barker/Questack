@@ -31,4 +31,7 @@ export const pool = mysql.createPool({
   ...dbConnectionOptions,
   waitForConnections: true,
   connectionLimit: 5,
+  // Cap requests waiting for a connection, so a slow or unreachable database
+  // makes extra requests fail fast instead of piling up in memory
+  queueLimit: 50,
 });

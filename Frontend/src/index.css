@@ -37,6 +37,16 @@
       opacity: 0;
     }
   }
+
+  /* Splash screen: the bar, the buttons and errors rising into place */
+  --animate-fade-up: fade-up 500ms ease-out both;
+
+  @keyframes fade-up {
+    from {
+      opacity: 0;
+      transform: translateY(12px);
+    }
+  }
 }
 
 /* Signature cut-corner shape. Resize with e.g. [--chamfer:8px]; children inherit the size. */

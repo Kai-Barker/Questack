@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Link, Outlet } from 'react-router';
-import galaxyTexture from '../../assets/GalaxyTexture.webp';
 import { UplinkContext, type Uplink } from '../../hooks/useUplink';
 import { getHealth } from '../../services/healthService';
+import GalaxyBackdrop from '../ui/GalaxyBackdrop';
 import LogoMark from '../ui/LogoMark';
 import OrbitalRings from './OrbitalRings';
 
@@ -38,13 +38,8 @@ export default function AuthShell() {
   return (
     <div className="relative isolate min-h-dvh overflow-x-hidden bg-space-950 text-slate-100">
       {/* Starfield backdrop, dimmed so the forms stay readable */}
-      <div
-        aria-hidden="true"
-        className="fixed inset-0 -z-10 bg-cover bg-center"
-        style={{ backgroundImage: `url(${galaxyTexture})` }}
-      />
-      <div aria-hidden="true" className="fixed inset-0 -z-10 bg-space-950/75" />
-      <OrbitalRings />
+      <GalaxyBackdrop />
+      <OrbitalRings variant="auth" />
 
       <header className="flex items-center justify-between gap-4 px-5 py-6 sm:px-12">
         <Link

@@ -59,3 +59,13 @@ export const aiLimiter = rateLimit({
   keyGenerator: (req) => (req.user ? `ai-user:${req.user.userId}` : `ai-ip:${clientIp(req)}`),
   message: limited("The Ship's AI needs a moment to recharge, Pilot. Try again in a few minutes."),
 });
+
+// Health check: public, so capped per IP. A page load uses one or two; the
+// systems toast adds one per manual re-check.
+export const healthLimiter = rateLimit({
+  ...shared,
+  windowMs: MINUTE,
+  limit: 30,
+  keyGenerator: (req) => `health:${clientIp(req)}`,
+  message: limited('Too many status checks from this terminal. Try again in a minute.'),
+});
