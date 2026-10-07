@@ -3,6 +3,7 @@ import jwt from 'jsonwebtoken';
 import { JWT_SECRET, REMEMBER_ME_DAYS, SESSION_EXPIRES_IN } from '../config/auth.js';
 import {
   createUser,
+  findById,
   findByLogin,
   toPublicUser,
   touchLastActive,
@@ -46,6 +47,13 @@ export async function authenticate(identifier: string, password: string): Promis
 
   await touchLastActive(user.userId);
   return toPublicUser(user);
+}
+
+// Re-checks a signed-in pilot's access code before a sensitive change
+export async function verifyPassword(userId: number, password: string): Promise<boolean> {
+  const user = await findById(userId);
+  const matches = await bcrypt.compare(password, user?.passwordHash ?? DUMMY_HASH);
+  return Boolean(user && user.isActive && matches);
 }
 
 export function signSessionToken(userId: number, remember: boolean): string {

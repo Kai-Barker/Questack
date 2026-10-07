@@ -4,6 +4,7 @@ const sizes = {
   sm: '[--chamfer:6px]',
   md: '[--chamfer:8px]',
   lg: '[--chamfer:12px]',
+  xl: '[--chamfer:20px]', // banners
   octagon: '[--chamfer:29.3%]', // regular octagon on a square box
 };
 

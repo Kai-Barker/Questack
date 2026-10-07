@@ -1,5 +1,6 @@
 // Form rules shown live on the Enlist screen. They mirror the backend's zod
-// schemas (Backend/src/controllers/authController.ts), which are the ones that
+// schemas (Backend/src/controllers/authController.ts and
+// Backend/src/utils/validation.ts), which are the ones that
 // actually count: these just give earlier feedback.
 
 const CALLSIGN_PATTERN = /^[A-Za-z0-9_-]+$/;

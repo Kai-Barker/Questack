@@ -4,7 +4,7 @@ import { findById, toPublicUser } from '../models/userModel.js';
 import { verifySessionToken } from '../services/authService.js';
 import { HttpError } from '../utils/httpError.js';
 
-const SIGN_IN_MESSAGE = 'Sign in to continue, Pilot.';
+export const SIGN_IN_MESSAGE = 'Sign in to continue, Pilot.';
 
 // Lets the request through only with a valid session cookie. The user is
 // re-loaded each time, so a deactivated or deleted account is locked out at

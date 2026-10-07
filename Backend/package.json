@@ -12,6 +12,7 @@
     "build": "tsc",
     "start": "node dist/index.js",
     "db:schema": "tsx database/runSchema.ts",
+    "db:migrate": "tsx database/migrate.ts",
     "ai:playground": "tsx scripts/aiPlayground.ts"
   },
   "keywords": [],

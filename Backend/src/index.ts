@@ -4,10 +4,11 @@ import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import { ApiError } from '@google/genai';
 import { pool } from './config/db.js';
-import { aiLimiter, healthLimiter } from './middleware/rateLimiters.js';
+import { aiLimiter, healthLimiter, profileIpLimiter } from './middleware/rateLimiters.js';
 import { requireAuth } from './middleware/requireAuth.js';
 import aiRoutes from './routes/aiRoutes.js';
 import authRoutes from './routes/authRoutes.js';
+import profileRoutes from './routes/profileRoutes.js';
 import { AiReplyError } from './services/ai/aiService.js';
 import { COMMS_DOWN_MESSAGE } from './utils/commsMessages.js';
 import { HttpError } from './utils/httpError.js';
@@ -86,6 +87,9 @@ app.get('/api/health', healthLimiter, async (_req, res) => {
 app.use('/api/auth', authRoutes);
 // The Ship's AI is for signed-in pilots only, rate limited per pilot
 app.use('/api/ai', requireAuth, aiLimiter, aiRoutes);
+// The signed-in pilot's own profile: an IP limit first (before the session's
+// database lookup), then each route's own per-pilot limit
+app.use('/api/profile', profileIpLimiter, requireAuth, profileRoutes);
 
 // Unknown API routes get JSON, not Express's default HTML page
 app.use('/api', (_req, res) => {

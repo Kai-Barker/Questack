@@ -69,3 +69,44 @@ export const healthLimiter = rateLimit({
   keyGenerator: (req) => `health:${clientIp(req)}`,
   message: limited('Too many status checks from this terminal. Try again in a minute.'),
 });
+
+// Runs before requireAuth on /api/profile, so a flood of requests is turned
+// away by IP before each one costs a database lookup to check the session
+export const profileIpLimiter = rateLimit({
+  ...shared,
+  windowMs: MINUTE,
+  limit: 120,
+  keyGenerator: (req) => `profile-ip:${clientIp(req)}`,
+  message: limited('Too many requests from this terminal. Try again in a minute.'),
+});
+
+// Profile: behind requireAuth, so these count per signed-in pilot
+const perPilot = (prefix: string) => (req: Request) =>
+  req.user ? `${prefix}:${req.user.userId}` : `${prefix}-ip:${clientIp(req)}`;
+
+export const profileReadLimiter = rateLimit({
+  ...shared,
+  windowMs: MINUTE,
+  limit: 60,
+  keyGenerator: perPilot('profile-read'),
+  message: limited('Too many profile requests. Try again in a minute.'),
+});
+
+export const profileUpdateLimiter = rateLimit({
+  ...shared,
+  windowMs: 15 * MINUTE,
+  limit: 20,
+  keyGenerator: perPilot('profile-update'),
+  message: limited('Too many profile changes. Wait 15 minutes, then try again.'),
+});
+
+// Callsign changes are rare and a callsign is also a login name, so this is
+// tight. Every attempt counts (including taken callsigns), which also stops
+// the form being used to check which callsigns exist.
+export const callsignLimiter = rateLimit({
+  ...shared,
+  windowMs: 24 * 60 * MINUTE,
+  limit: 5,
+  keyGenerator: perPilot('callsign'),
+  message: limited('Callsign changes are limited to 5 attempts a day. Try again tomorrow.'),
+});

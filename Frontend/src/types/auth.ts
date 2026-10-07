@@ -1,3 +1,5 @@
+import type { RequestFailure } from '../utils/requestFailure';
+
 // Shapes for the /api/auth endpoints (Backend/src/routes/authRoutes.ts)
 
 export interface AuthUser {
@@ -21,8 +23,4 @@ export interface RegisterInput {
 }
 
 // A failed auth request, ready to show on the form
-export interface AuthFailure {
-  kind: 'invalid' | 'denied' | 'limited' | 'conflict' | 'offline' | 'error';
-  message: string;
-  fields: Record<string, string>; // per-field messages from the server
-}
+export type AuthFailure = RequestFailure;

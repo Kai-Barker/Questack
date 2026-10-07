@@ -11,6 +11,7 @@ import DashboardPage from './pages/DashboardPage';
 import EnlistPage from './pages/EnlistPage';
 import LoginPage from './pages/LoginPage';
 import PlaceholderPage from './pages/PlaceholderPage';
+import ProfilePage from './pages/ProfilePage';
 import SectorPage from './pages/SectorPage';
 
 // Session first, then the splash/boot sequence, then whichever page was asked for
@@ -50,7 +51,7 @@ const router = createBrowserRouter([
             element: <AppLayout />,
             children: [
               { index: true, element: <DashboardPage /> },
-              { path: 'profile', element: <PlaceholderPage title="Profile" /> },
+              { path: 'profile', element: <ProfilePage /> },
               { path: 'settings', element: <PlaceholderPage title="Settings" /> },
               { path: 'sector/:sectorId', element: <SectorPage /> },
               // Loaded on demand: the code editor is big, and only this screen needs it

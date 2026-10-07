@@ -25,6 +25,9 @@ function loadCaCert(): string {
 export const dbConnectionOptions = {
   uri: uri.toString(),
   ssl: { ca: loadCaCert() },
+  // The database clock is UTC. Without this, mysql2 reads DATETIME columns as
+  // this machine's local time, shifting dates by the local UTC offset.
+  timezone: 'Z',
 };
 
 export const pool = mysql.createPool({

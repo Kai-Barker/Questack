@@ -56,6 +56,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return user;
   }, []);
 
+  // Never rejects: if the backend can't be reached, the current account is kept
+  // and the change shows up on the next load
+  const refreshUser = useCallback(async () => {
+    try {
+      const user = await authService.getCurrentUser();
+      setState(user ? { status: 'authenticated', user } : ANONYMOUS);
+    } catch {
+      // Offline: keep what we have
+    }
+  }, []);
+
   const logout = useCallback(async () => {
     try {
       await authService.logout();
@@ -65,6 +76,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const value = useMemo(() => ({ ...state, login, register, logout }), [state, login, register, logout]);
+  const value = useMemo(
+    () => ({ ...state, login, register, logout, refreshUser }),
+    [state, login, register, logout, refreshUser],
+  );
   return <AuthContext value={value}>{children}</AuthContext>;
 }

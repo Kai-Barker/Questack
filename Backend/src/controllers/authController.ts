@@ -3,14 +3,7 @@ import { z } from 'zod';
 import { clearSessionCookieOptions, SESSION_COOKIE, sessionCookieOptions } from '../config/auth.js';
 import { authenticate, LOGIN_FAILED_MESSAGE, registerPilot, signSessionToken } from '../services/authService.js';
 import { HttpError } from '../utils/httpError.js';
-
-// The same rules are shown live on the Enlist screen; these are the ones that count.
-const callsign = z
-  .string()
-  .trim()
-  .min(3, 'Use at least 3 characters.')
-  .max(20, 'Use 20 characters or fewer.')
-  .regex(/^[A-Za-z0-9_-]+$/, 'Use letters, numbers, - and _ only.');
+import { callsign, parse } from '../utils/validation.js';
 
 const email = z
   .string()
@@ -38,19 +31,6 @@ const loginBody = z.object({
   password: z.string().min(1, 'Enter your access code.').max(200),
   remember: z.boolean().optional(),
 });
-
-// Validation errors come back as { error, fields: { fieldName: message } }
-function parse<T>(schema: z.ZodType<T>, body: unknown): T {
-  const result = schema.safeParse(body);
-  if (result.success) return result.data;
-
-  const fields: Record<string, string> = {};
-  for (const issue of result.error.issues) {
-    const field = String(issue.path[0] ?? 'form');
-    fields[field] ??= issue.message;
-  }
-  throw new HttpError(400, 'Check the highlighted fields.', fields);
-}
 
 function startSession(res: Response, userId: number, remember: boolean) {
   res.cookie(SESSION_COOKIE, signSessionToken(userId, remember), sessionCookieOptions(remember));

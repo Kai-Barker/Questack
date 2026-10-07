@@ -5,6 +5,9 @@
 --
 -- Run against an empty database. Re-running will fail on existing
 -- tables, which is deliberate so real data is never wiped by accident.
+--
+-- Later changes live in database/migrations (npm run db:migrate). Run
+-- those after this file to bring a new database up to date.
 -- =====================================================================
 
 -- ---------------------------------------------------------------------

@@ -33,10 +33,14 @@ export function useApiRequest<T>(request: () => Promise<T>) {
     setAttempt((n) => n + 1);
   }, []);
 
+  // Swaps in fresh data without a loading state, e.g. the reply to a save
+  const replace = useCallback((data: T) => setState({ status: 'success', data }), []);
+
   return {
     data: state.status === 'success' ? state.data : null,
     loading: state.status === 'loading',
     error: state.status === 'error' ? state.error : null,
     reload,
+    replace,
   };
 }
