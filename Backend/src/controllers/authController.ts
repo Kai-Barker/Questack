@@ -51,6 +51,12 @@ export async function login(req: Request, res: Response) {
   res.json({ user });
 }
 
+// Only clears this browser's cookie. The token itself stays valid until it
+// expires (up to REMEMBER_ME_DAYS), so a copy of it would still work.
+// The cookie is httpOnly, and deactivating the account (is_active) locks the
+// pilot out at once. To revoke sessions properly, add a session_version
+// column, put it in the token, and compare it in requireAuth (which already
+// loads the user row, so it costs nothing extra).
 export function logout(_req: Request, res: Response) {
   res.clearCookie(SESSION_COOKIE, clearSessionCookieOptions);
   res.status(204).end();

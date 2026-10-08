@@ -33,8 +33,13 @@ export const dbConnectionOptions = {
 export const pool = mysql.createPool({
   ...dbConnectionOptions,
   waitForConnections: true,
-  connectionLimit: 5,
-  // Cap requests waiting for a connection, so a slow or unreachable database
-  // makes extra requests fail fast instead of piling up in memory
-  queueLimit: 50,
+  // One profile load runs about 10 queries at once (a dashboard load about
+  // the same), so the pool and its queue are sized for a classroom of pilots
+  // loading together. A smaller queue turned busy moments into 500 errors.
+  connectionLimit: 10,
+  // Still capped, so a slow or unreachable database makes extra requests
+  // fail instead of piling up in memory without end
+  queueLimit: 500,
+  // Give up on a database that doesn't answer rather than hang
+  connectTimeout: 10_000,
 });

@@ -15,7 +15,8 @@ export const JWT_SECRET = secret;
 
 // How long a normal session's token lasts
 export const SESSION_EXPIRES_IN = (process.env.JWT_EXPIRES_IN || '12h') as NonNullable<SignOptions['expiresIn']>;
-// "Keep this terminal signed in"
+// "Keep this terminal signed in". Tokens can't be revoked before they expire
+// (see logout in controllers/authController.ts)
 export const REMEMBER_ME_DAYS = 30;
 
 export const SESSION_COOKIE = 'questack_session';

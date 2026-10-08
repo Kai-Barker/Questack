@@ -67,13 +67,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  // Never rejects: the pilot is signed out locally even if the request
+  // failed (the cookie expires anyway), so callers can carry on to /login
   const logout = useCallback(async () => {
     try {
       await authService.logout();
-    } finally {
-      // Signed out locally even if the request failed; the cookie expires anyway
-      setState(ANONYMOUS);
+    } catch {
+      // Offline: nothing more to do
     }
+    setState(ANONYMOUS);
   }, []);
 
   const value = useMemo(

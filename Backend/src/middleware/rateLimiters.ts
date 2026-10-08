@@ -60,6 +60,18 @@ export const aiLimiter = rateLimit({
   message: limited("The Ship's AI needs a moment to recharge, Pilot. Try again in a few minutes."),
 });
 
+// Ship's AI daily budget per pilot. One request can take several Gemini calls
+// (retries and the Flash-Lite fallback), and the free tier's daily quota is
+// shared by every pilot, so one pilot must not be able to use it all.
+// Like every limiter here it's in memory, so a restart resets it.
+export const aiDailyLimiter = rateLimit({
+  ...shared,
+  windowMs: 24 * 60 * MINUTE,
+  limit: 150,
+  keyGenerator: (req) => (req.user ? `ai-daily:${req.user.userId}` : `ai-daily-ip:${clientIp(req)}`),
+  message: limited("The Ship's AI has done all it can for today, Pilot. Comms reopen tomorrow."),
+});
+
 // Health check: public, so capped per IP. A page load uses one or two; the
 // systems toast adds one per manual re-check.
 export const healthLimiter = rateLimit({
@@ -71,7 +83,7 @@ export const healthLimiter = rateLimit({
 });
 
 // Runs before requireAuth on every signed-in endpoint (/api/pilot,
-// /dashboard, /sectors, /quests, /profile, /ai), so a flood of requests is
+// /dashboard, /sectors, /quests, /profile, /ai, /auth/me), so a flood of requests is
 // turned away by IP before each one costs a database lookup to check the
 // session. Generous, because a classroom of pilots can share one IP.
 export const appIpLimiter = rateLimit({

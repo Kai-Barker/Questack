@@ -1,7 +1,10 @@
 // Rules for XP and progress, kept together so they're easy to tune.
 
-// Replaying a quest you've already cleared gives this share of its XP
-// (practice is rewarded, but XP can't be farmed). Boosters don't apply.
+// Replaying a quest you've already cleared gives this share of its XP, so
+// practice is rewarded. Boosters don't apply. Every replay earns it, limited
+// only by the AI and quest-complete rate limits, so a pilot can still farm XP
+// slowly by re-entering answers they know. If XP ever feeds a leaderboard,
+// cap replays in questService.completeQuest (e.g. once per quest per day).
 export const REPLAY_XP_SHARE = 0.25;
 
 // Days (for streaks and the flight log) run on South African time, UTC+2,

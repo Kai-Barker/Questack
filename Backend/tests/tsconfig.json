@@ -1,0 +1,11 @@
+{
+  // Type-checks the tests (npm run test:typecheck). Vitest itself runs them
+  // without type-checking, like the app's own tsx dev server.
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "rootDir": "..",
+    "noEmit": true,
+    "types": ["node"]
+  },
+  "include": [".", "../src", "../database/seeds"]
+}
