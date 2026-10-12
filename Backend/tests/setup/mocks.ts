@@ -32,6 +32,8 @@ vi.mock('../../src/models/profileModel.js', async (importOriginal) => stubFuncti
 vi.mock('../../src/models/progressModel.js', async (importOriginal) => stubFunctions(await importOriginal()));
 vi.mock('../../src/models/questModel.js', async (importOriginal) => stubFunctions(await importOriginal()));
 vi.mock('../../src/models/aiUsageModel.js', async (importOriginal) => stubFunctions(await importOriginal()));
+vi.mock('../../src/models/decoderModel.js', async (importOriginal) => stubFunctions(await importOriginal()));
+vi.mock('../../src/models/adminModel.js', async (importOriginal) => stubFunctions(await importOriginal()));
 
 vi.mock('../../src/config/gemini.js', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../src/config/gemini.js')>()),

@@ -36,6 +36,8 @@ const questackTheme = EditorView.theme(
     '.cm-placeholder': { color: '#7384a3' },
     // The line the pilot marked as the bug
     '.cm-marked-line': { backgroundColor: 'rgba(245, 165, 36, 0.14)', boxShadow: 'inset 3px 0 0 #f5a524' },
+    // The section being explained on the decoder
+    '.cm-highlight-line': { backgroundColor: 'rgba(34, 211, 238, 0.1)', boxShadow: 'inset 3px 0 0 #22d3ee' },
   },
   { dark: true },
 );
@@ -90,6 +92,19 @@ function markedLineDecoration(line: number): Extension {
   );
 }
 
+// Lines numbered `from` to `to` (inclusive), clamped to the document
+function highlightedLinesDecoration(from: number, to: number): Extension {
+  return EditorView.decorations.compute(['doc'], (state) => {
+    const first = Math.max(1, from);
+    const last = Math.min(state.doc.lines, to);
+    const marks = [];
+    for (let line = first; line <= last; line++) {
+      marks.push(Decoration.line({ class: 'cm-highlight-line' }).range(state.doc.line(line).from));
+    }
+    return marks.length > 0 ? Decoration.set(marks) : Decoration.none;
+  });
+}
+
 interface CodeViewerProps {
   value: string;
   language: string; // sector name, e.g. 'C#'
@@ -100,6 +115,7 @@ interface CodeViewerProps {
   placeholder?: string;
   markedLine?: number;
   onLineMarked?: (line: number) => void; // bug hunts: click a line, or put the cursor on it and press Enter
+  highlightLines?: { from: number; to: number }; // decoder: the section being explained
 }
 
 export default function CodeViewer({
@@ -112,9 +128,13 @@ export default function CodeViewer({
   placeholder,
   markedLine,
   onLineMarked,
+  highlightLines,
 }: CodeViewerProps) {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const canMarkLines = onLineMarked !== undefined;
+  // Compared as numbers, so a new object for the same lines doesn't rebuild the editor
+  const highlightFrom = highlightLines?.from;
+  const highlightTo = highlightLines?.to;
 
   useEffect(() => {
     const wrapper = wrapperRef.current;
@@ -135,8 +155,11 @@ export default function CodeViewer({
 
     if (canMarkLines) list.push(lineMarking);
     if (markedLine !== undefined) list.push(markedLineDecoration(markedLine));
+    if (highlightFrom !== undefined && highlightTo !== undefined) {
+      list.push(highlightedLinesDecoration(highlightFrom, highlightTo));
+    }
     return list;
-  }, [language, fontSize, label, canMarkLines, markedLine]);
+  }, [language, fontSize, label, canMarkLines, markedLine, highlightFrom, highlightTo]);
 
   return (
     <div ref={wrapperRef} className="h-full">

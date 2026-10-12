@@ -1,75 +1,36 @@
-# React + TypeScript + Vite
+# Questack: Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+React 19 + Vite + TypeScript + Tailwind CSS v4. See the [root README](../README.md) for the full project and setup.
 
-Currently, two official plugins are available:
-
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
-
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-
+```bash
+npm install
+npm run dev      # http://localhost:5173 (needs the backend on :3000)
+npm test         # Vitest + Testing Library; the API is answered by MSW
+npm run lint
+npm run build
 ```
 
-You can also install [eslint-plugin-react-x](https://npmx.dev/package/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://npmx.dev/package/eslint-plugin-react-dom) for React-specific lint rules:
+## How it's organised
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+| Folder | Purpose |
+|---|---|
+| `src/pages/` | One component per screen (Dashboard, Sector, Quest, Decoder, Onboarding, Profile, Settings, admin/) |
+| `src/components/` | UI grouped by screen, plus `ui/` for shared pieces (Panel, Button, ChamferFrame) |
+| `src/services/` | The only code that calls the backend (`api.ts` is the shared axios instance) |
+| `src/hooks/` | Data loading (`useApiRequest`) and screen state (`useQuestSession`, `useDecoder`) |
+| `src/context/` | Signed-in account (`AuthProvider`) and pilot summary (`PilotProvider`) |
+| `src/types/` | Shapes of the API responses |
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+## Routing and guards
 
-```
+`App.tsx` defines the routes. Each guard wraps the routes inside it:
+
+- `BootGate` plays the splash screen. Signed-out visitors choose **Registered pilot** (login) or **New recruit** (enlist).
+- `GuestOnly` covers login and enlist, which are for signed-out visitors only.
+- `RequireAuth` sends anyone without a session to login.
+- `RequireEnlisted` sends a pilot with no sector to `/onboarding` first.
+- `RequireAdmin` sends anyone who isn't an admin back to the Galaxy Map. The backend checks the role again on every admin request.
+
+## API access
+
+The app calls `/api`, which Vite proxies to the backend locally (and a rewrite does in production). That keeps the httpOnly session cookie first-party. Leave `VITE_API_URL` unset unless the API is on the same origin. If a local `.env` sets it to `http://localhost:3000/api`, the tests fail, because MSW answers on the app's own origin.

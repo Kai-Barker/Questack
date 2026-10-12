@@ -1,14 +1,13 @@
 import type { Request, Response } from 'express';
 import { z } from 'zod';
-import { logAiUsage, type AiFeature } from '../models/aiUsageModel.js';
 import {
   decodeTransmission,
   evaluateAnswer,
   getHint,
   mentorChat,
-  withUsage,
   writeDebrief,
 } from '../services/ai/aiService.js';
+import { tracked } from '../services/ai/trackUsage.js';
 import { checkCanAnswer, objectiveAccess, requireCompleted, saveAnswer } from '../services/questService.js';
 import { HttpError } from '../utils/httpError.js';
 
@@ -71,14 +70,6 @@ function parse<T>(schema: z.ZodType<T>, body: unknown): T {
   const result = schema.safeParse(body);
   if (!result.success) throw new HttpError(400, 'Invalid request body.');
   return result.data;
-}
-
-// Runs a Ship's AI feature and logs its token usage. A failed log never
-// fails the pilot's request: the reply has already been paid for.
-async function tracked<T>(userId: number, feature: AiFeature, run: () => Promise<T>): Promise<T> {
-  const { result, usage } = await withUsage(run);
-  await logAiUsage(userId, feature, usage).catch((err: unknown) => console.error('AI usage log failed:', err));
-  return result;
 }
 
 // requireAuth runs first, so req.user is always set. Every call checks the

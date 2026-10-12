@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import * as decoder from '../../../src/models/decoderModel.js';
 import * as profiles from '../../../src/models/profileModel.js';
 import * as progress from '../../../src/models/progressModel.js';
 import { buildProfile, changeCallsign, startBooster } from '../../../src/services/profileService.js';
@@ -30,6 +31,12 @@ describe('unlock rules', () => {
     ['ai_questions>=25', () => vi.mocked(progress.countAiQuestions).mockResolvedValue(25), true],
     ['ai_questions>=25', () => vi.mocked(progress.countAiQuestions).mockResolvedValue(24), false],
     ['transmissions_decoded>=5', () => vi.mocked(progress.countCorrectAnswersByType).mockResolvedValue(new Map([['decode_transmission', 5]])), true],
+    // Standalone decoder checks count alongside decode objectives in quests
+    ['transmissions_decoded>=5', () => {
+      vi.mocked(progress.countCorrectAnswersByType).mockResolvedValue(new Map([['decode_transmission', 2]]));
+      vi.mocked(decoder.countDecodes).mockResolvedValue(3);
+    }, true],
+    ['transmissions_decoded>=5', () => vi.mocked(decoder.countDecodes).mockResolvedValue(4), false],
     ['sectors_cleared>=1', () => vi.mocked(progress.listClearedQuests).mockResolvedValue([{ questId: 11, lastCompletedAt: new Date() }]), true],
     ['hive_assaults>=1', () => {}, false], // not built yet, so never earned
     ['unknown_stat>=0', () => {}, false],

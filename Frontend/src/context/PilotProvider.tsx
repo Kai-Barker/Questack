@@ -15,12 +15,13 @@ export function PilotProvider({ children }: { children: ReactNode }) {
   // Once loaded, refresh quietly in the background so the nav and pages never
   // flash back to a loading state. A failed refresh keeps the last data.
   const hasData = data !== null;
-  const refresh = useCallback(() => {
+  // Resolves once the fresh data is in, for pages that must wait for it
+  const refresh = useCallback(async () => {
     if (!hasData) {
       reload();
       return;
     }
-    getCurrentPilot().then(replace, () => {});
+    await getCurrentPilot().then(replace, () => {});
   }, [hasData, reload, replace]);
 
   const pilot = useMemo(() => (data && user ? { ...data, callsign: user.username } : data), [data, user]);

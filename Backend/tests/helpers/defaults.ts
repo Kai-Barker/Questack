@@ -2,7 +2,9 @@ import { vi } from 'vitest';
 import type { GenerateContentResponse } from '@google/genai';
 import { pool } from '../../src/config/db.js';
 import { generate } from '../../src/config/gemini.js';
+import * as admin from '../../src/models/adminModel.js';
 import * as aiUsage from '../../src/models/aiUsageModel.js';
+import * as decoder from '../../src/models/decoderModel.js';
 import * as profiles from '../../src/models/profileModel.js';
 import * as progress from '../../src/models/progressModel.js';
 import * as questModel from '../../src/models/questModel.js';
@@ -22,6 +24,15 @@ export function geminiReply(text: string, tokens = { input: 100, output: 20 }): 
 }
 
 export const DEFAULT_EVALUATION = { correct: true, feedback: 'Spot on, Pilot.', guidingQuestion: null };
+export const ADMIN_OVERVIEW = {
+  pilots: 12,
+  activePilots: 11,
+  publishedQuests: 10,
+  draftQuests: 1,
+  aiCallsToday: 40,
+  aiTokensToday: 52000,
+};
+
 export const DEFAULT_TEXT_REPLY = 'Trace the loop one pass at a time, Pilot. What changes each time?';
 
 // A fake database connection that records how the transaction was handled
@@ -83,6 +94,11 @@ export function applyDefaults() {
   vi.mocked(progress.activateBooster).mockResolvedValue('activated');
 
   vi.mocked(aiUsage.logAiUsage).mockResolvedValue(undefined);
+
+  vi.mocked(decoder.recordDecode).mockResolvedValue(true);
+  vi.mocked(decoder.countDecodes).mockResolvedValue(0);
+
+  vi.mocked(admin.getOverview).mockResolvedValue({ ...ADMIN_OVERVIEW });
 
   // JSON calls (evaluate, decode) get JSON back; everything else gets text
   vi.mocked(generate).mockImplementation(async (model, _contents, config = {}) => ({

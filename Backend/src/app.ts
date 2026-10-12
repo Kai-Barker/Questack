@@ -4,7 +4,9 @@ import cookieParser from 'cookie-parser';
 import { ApiError } from '@google/genai';
 import { pool } from './config/db.js';
 import { aiDailyLimiter, aiLimiter, appIpLimiter, healthLimiter } from './middleware/rateLimiters.js';
+import { requireAdmin } from './middleware/requireAdmin.js';
 import { requireAuth } from './middleware/requireAuth.js';
+import adminRoutes from './routes/adminRoutes.js';
 import aiRoutes from './routes/aiRoutes.js';
 import authRoutes from './routes/authRoutes.js';
 import profileRoutes from './routes/profileRoutes.js';
@@ -107,6 +109,8 @@ app.use('/api/auth', authRoutes);
 // The Ship's AI is rate limited per pilot (short burst and daily) to protect the Gemini quota.
 app.use('/api/ai', appIpLimiter, requireAuth, aiLimiter, aiDailyLimiter, aiRoutes);
 app.use('/api/profile', appIpLimiter, requireAuth, profileRoutes);
+// Admin console: signed in, and the account's role (re-read every request) must be admin
+app.use('/api/admin', appIpLimiter, requireAuth, requireAdmin, adminRoutes);
 // Galaxy Map, Sector Map, quests and the nav summary (see progressRoutes for paths)
 app.use('/api', progressRoutes);
 

@@ -8,6 +8,7 @@ import {
   usernameTakenByOther,
   type ProfileChanges,
 } from '../models/profileModel.js';
+import { countDecodes } from '../models/decoderModel.js';
 import { activateBooster, countAiQuestions, countCorrectAnswersByType } from '../models/progressModel.js';
 import { SIGN_IN_MESSAGE } from '../middleware/requireAuth.js';
 import type { ChallengeType, Proficiency } from '../types/content.js';
@@ -114,7 +115,7 @@ async function loadInsignia(): Promise<InsigniaRecord[]> {
 
 // Loads the pilot's account and progress, and works out what they've earned
 async function loadPilot(userId: number) {
-  const [record, featuredIds, catalogue, core, flightLog, xpHistory, answersByType, aiQuestions] = await Promise.all([
+  const [record, featuredIds, catalogue, core, flightLog, xpHistory, answersByType, aiQuestions, decodes] = await Promise.all([
     findProfile(userId),
     listFeaturedIds(userId),
     loadInsignia(),
@@ -123,6 +124,7 @@ async function loadPilot(userId: number) {
     loadXpHistory(userId),
     countCorrectAnswersByType(userId),
     countAiQuestions(userId),
+    countDecodes(userId),
   ]);
   if (!record) throw new HttpError(401, SIGN_IN_MESSAGE);
 
@@ -137,7 +139,8 @@ async function loadPilot(userId: number) {
   const stats = {
     questsCleared: core.cleared.size,
     bugsSquashed: answersByType.get('bug_hunt') ?? 0,
-    transmissionsDecoded: answersByType.get('decode_transmission') ?? 0,
+    // Decode objectives in quests, plus checks passed on the standalone decoder
+    transmissionsDecoded: (answersByType.get('decode_transmission') ?? 0) + decodes,
   };
 
   // The stats insignia unlock conditions can refer to

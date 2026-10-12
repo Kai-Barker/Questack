@@ -12,7 +12,8 @@ import type { AuthFailure } from '../types/auth';
 import { accessCodeChecks, callsignError, emailError, passwordError, withoutField } from '../utils/authRules';
 import { safeNextPath } from '../utils/redirect';
 
-// Steps 02 and 03 are onboarding (week 4); this screen is step 01
+// This screen is step 01. Steps 02 and 03 are onboarding (OnboardingPage),
+// which new pilots are sent to once signed in (see RequireEnlisted)
 const SEQUENCE = [
   { number: '01', title: 'Pilot record', detail: 'Callsign and access code' },
   { number: '02', title: 'First sector', detail: 'Choose a language and rank' },

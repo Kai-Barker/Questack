@@ -5,7 +5,7 @@ export interface PilotContextValue {
   pilot: PilotSummary | null;
   loading: boolean;
   error: string | null;
-  reload: () => void;
+  reload: () => Promise<void>; // resolves once refreshed (straight away on a first load)
 }
 
 export const PilotContext = createContext<PilotContextValue | null>(null);

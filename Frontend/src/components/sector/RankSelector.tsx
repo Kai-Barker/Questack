@@ -8,11 +8,12 @@ const ranks: ProficiencyLevel[] = ['cadet', 'pilot', 'commander'];
 interface RankSelectorProps {
   languageId: number;
   initialRank?: ProficiencyLevel; // undefined = not enlisted yet
+  onSaved?: () => void; // e.g. to refresh the rank shown in the nav
 }
 
 // The pilot's proficiency class in this sector, which sets how the Ship's AI
 // explains things. Updates straight away and rolls back if saving fails.
-export default function RankSelector({ languageId, initialRank }: RankSelectorProps) {
+export default function RankSelector({ languageId, initialRank, onSaved }: RankSelectorProps) {
   const [rank, setRank] = useState(initialRank);
   const [failed, setFailed] = useState(false);
 
@@ -21,10 +22,13 @@ export default function RankSelector({ languageId, initialRank }: RankSelectorPr
     const previous = rank;
     setRank(next);
     setFailed(false);
-    updateSectorRank(languageId, next).catch(() => {
-      setRank(previous);
-      setFailed(true);
-    });
+    updateSectorRank(languageId, next).then(
+      () => onSaved?.(),
+      () => {
+        setRank(previous);
+        setFailed(true);
+      },
+    );
   }
 
   return (

@@ -4,7 +4,12 @@ import type {
   ChatRequest,
   DebriefRequest,
   DecodedSection,
+  DecodedTransmission,
   DecodeRequest,
+  DecoderChatRequest,
+  DecoderCheckRequest,
+  DecoderCheckResult,
+  DecoderRequest,
   EvaluateRequest,
   Evaluation,
   HintRequest,
@@ -62,4 +67,20 @@ export async function decodeTransmission(request: DecodeRequest): Promise<Decode
 export async function requestDebrief(request: DebriefRequest): Promise<string> {
   const { debrief } = await post<{ debrief: string }>('debrief', request);
   return debrief;
+}
+
+// The standalone decoder (/decoder). Not a quest: no progress or XP, and the
+// pasted code is never saved.
+
+export async function decodeStandalone(request: DecoderRequest): Promise<DecodedTransmission> {
+  return post<DecodedTransmission>('decoder', request);
+}
+
+export async function sendDecoderMessage(request: DecoderChatRequest): Promise<string> {
+  const { reply } = await post<{ reply: string }>('decoder/chat', request);
+  return reply;
+}
+
+export async function checkDecoderAnswer(request: DecoderCheckRequest): Promise<DecoderCheckResult> {
+  return post<DecoderCheckResult>('decoder/check', request);
 }

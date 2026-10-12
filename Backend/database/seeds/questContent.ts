@@ -478,6 +478,87 @@ class ShieldControl
       },
     ],
   },
+  {
+    questId: 5,
+    languageId: 1,
+    title: 'Method Moons',
+    concept: 'Functions',
+    difficulty: 'medium',
+    isSideQuest: false,
+    storyText:
+      'The moons of this system each run the same navigation routines, and one of them is quietly failing. Learn how C# methods take values in and hand results back before the fleet is grounded.',
+    xpReward: 150,
+    displayOrder: 5,
+    prerequisites: [3],
+    challenges: [
+      {
+        type: 'read_and_explain',
+        instructions:
+          'Read Navigation.cs. Explain what the FuelNeeded method does with its parameters, and what each line of Main prints.',
+        fileName: 'Navigation.cs',
+        code: code(`
+using System;
+
+class Navigation
+{
+    static int FuelNeeded(int distance, int burnPerUnit)
+    {
+        return distance * burnPerUnit;
+    }
+
+    static void Main()
+    {
+        int toMoon = FuelNeeded(4, 3);
+        int toStation = FuelNeeded(10, 2);
+
+        Console.WriteLine($"Moon run: {toMoon}");
+        Console.WriteLine($"Station run: {toStation}");
+    }
+}
+`),
+        answerKey:
+          'FuelNeeded takes two int parameters, distance and burnPerUnit, and returns their product. Main calls it twice with different arguments: FuelNeeded(4, 3) returns 12 and FuelNeeded(10, 2) returns 20. Each result is returned to the caller and stored in a variable, so it prints "Moon run: 12" and "Station run: 20".',
+        markingCriteria:
+          'Must mention: the method multiplies its two parameters and returns the result; the arguments in each call fill the parameters; the two results 12 and 20; the printed lines "Moon run: 12" and "Station run: 20".',
+      },
+      {
+        type: 'bug_hunt',
+        instructions:
+          'Boost should raise the shields by 25, so the log should say "Shields at 75", but it says "Shields at 50". Find the line with the bug and explain what goes wrong.',
+        fileName: 'ShieldBoost.cs',
+        code: code(`
+using System;
+
+class ShieldBoost
+{
+    static int Boost(int shields)
+    {
+        int boosted = shields + 25;
+        return shields;
+    }
+
+    static void Main()
+    {
+        int shields = Boost(50);
+        Console.WriteLine($"Shields at {shields}");
+    }
+}
+`),
+        answerKey:
+          'Boost works out the boosted value (75) and stores it in boosted, but then returns the original shields parameter (50) instead. The calculation is thrown away. It should return boosted.',
+        markingCriteria:
+          'Must identify the return statement and explain that the method returns the unchanged parameter instead of the boosted value it calculated; should suggest returning boosted.',
+        bugLine: 8,
+        bugLineContains: 'return shields;',
+      },
+      {
+        type: 'decode_transmission',
+        instructions: decodeInstructions('C#', 'defines and calls its own methods'),
+        markingCriteria:
+          'The pilot must explain in their own words what the pasted code does overall, including what its methods take in and give back. Judge against the pasted code itself. Reward genuine understanding; don’t require every detail.',
+      },
+    ],
+  },
 
   // -------------------------------------------------------------------
   // JavaScript Sector
@@ -598,6 +679,188 @@ console.log("Total fuel: " + total);
         instructions: decodeInstructions('JavaScript', 'works with a few different types of value (numbers, strings, booleans)'),
         markingCriteria:
           'The pilot must explain in their own words what the pasted code does, including what kind of value its main variables hold. Judge against the pasted code itself. Reward genuine understanding; don’t require every detail.',
+      },
+    ],
+  },
+  {
+    questId: 13,
+    languageId: 2,
+    title: 'Conditional Canyon',
+    concept: 'Conditionals',
+    difficulty: 'easy',
+    isSideQuest: false,
+    storyText:
+      'Conditional Canyon is full of forks, and every ship has to pick the right path. Learn how JavaScript decides which branch of code to run before a hull breach turns into a disaster.',
+    xpReward: 75,
+    displayOrder: 3,
+    prerequisites: [12],
+    challenges: [
+      {
+        type: 'read_and_explain',
+        instructions: 'Read hull.js. Explain which message is logged and why the other branches are skipped.',
+        fileName: 'hull.js',
+        code: code(`
+const hull = 45;
+
+if (hull > 70) {
+  console.log("Hull stable");
+} else if (hull > 30) {
+  console.log("Hull damaged: return to dock");
+} else {
+  console.log("Hull critical: abandon ship");
+}
+`),
+        answerKey:
+          'The conditions are checked from top to bottom and only the first true one runs. hull > 70 is false for 45, so that branch is skipped. hull > 30 is true, so it logs "Hull damaged: return to dock". Because a branch already ran, the else is skipped.',
+        markingCriteria:
+          'Must say it logs "Hull damaged: return to dock", and explain that the conditions are checked in order and only the first true branch runs (so the else is skipped).',
+      },
+      {
+        type: 'bug_hunt',
+        instructions:
+          'The pressure is 0, so the airlock should stay sealed, but it opens anyway. Find the line with the bug and explain what goes wrong.',
+        fileName: 'airlock.js',
+        code: code(`
+let pressure = 0;
+const safePressure = 100;
+
+// The airlock must only open at safe pressure
+if (pressure = safePressure) {
+  console.log("Airlock opening");
+} else {
+  console.log("Airlock sealed: pressure too low");
+}
+`),
+        answerKey:
+          'The if condition uses a single = which assigns safePressure to pressure instead of comparing them. The assignment gives 100, which is truthy, so the airlock always opens (and pressure is overwritten). It should compare with === (or >= for "at least safe").',
+        markingCriteria:
+          'Must identify the if condition and explain that = assigns rather than compares, so the condition is always truthy; should suggest === or >=.',
+        bugLine: 5,
+        bugLineContains: 'if (pressure = safePressure)',
+      },
+    ],
+  },
+  {
+    questId: 14,
+    languageId: 2,
+    title: 'Orbit Loop',
+    concept: 'Loops',
+    difficulty: 'medium',
+    isSideQuest: false,
+    storyText:
+      'A scanning drone is stuck circling the same orbit, and the boarding crew is waiting on it. Learn how JavaScript loops repeat work and, just as importantly, how they stop.',
+    xpReward: 150,
+    displayOrder: 4,
+    prerequisites: [13],
+    challenges: [
+      {
+        type: 'read_and_explain',
+        instructions:
+          'Read launch.js. Explain what the for loop logs, what the while loop logs, and when each loop stops.',
+        fileName: 'launch.js',
+        code: code(`
+const crew = ["Vega", "Orion", "Lyra"];
+
+for (let i = 0; i < crew.length; i++) {
+  console.log("Boarding: " + crew[i]);
+}
+
+let countdown = 3;
+while (countdown > 0) {
+  console.log(countdown);
+  countdown--;
+}
+console.log("Launch!");
+`),
+        answerKey:
+          'The for loop runs with i = 0, 1 and 2 (while i is less than crew.length, 3), logging "Boarding: Vega", "Boarding: Orion" and "Boarding: Lyra". The while loop logs 3, 2 and 1, taking 1 off countdown each pass. When countdown reaches 0 the condition countdown > 0 is false and it stops. "Launch!" is logged once after the loop.',
+        markingCriteria:
+          'Must mention: the three boarding lines in order; the for loop stopping once i reaches the array length; the countdown logging 3, 2, 1 and stopping at 0; "Launch!" logged once at the end.',
+      },
+      {
+        type: 'bug_hunt',
+        instructions:
+          'The drone should scan each of the three sectors once, but it never finishes: it logs "Scanning Alpha", then "Scanning undefined" over and over. Find the line with the bug and explain what goes wrong.',
+        fileName: 'scan.js',
+        code: code(`
+const sectors = ["Alpha", "Beta", "Gamma"];
+let scanned = 0;
+
+// Scan every sector once
+for (let i = 0; i < sectors.length; i--) {
+  console.log("Scanning " + sectors[i]);
+  scanned++;
+}
+
+console.log(scanned + " sectors scanned");
+`),
+        answerKey:
+          'The loop update uses i-- instead of i++, so i goes 0, -1, -2 and so on. It is always less than sectors.length, so the condition never becomes false and the loop never ends. sectors[-1] and below do not exist, which is why it logs undefined. It should be i++.',
+        markingCriteria:
+          'Must identify the for loop header and explain that i-- makes i go down instead of up, so the condition stays true forever (an infinite loop); should suggest i++.',
+        bugLine: 5,
+        bugLineContains: 'i--',
+      },
+      {
+        type: 'decode_transmission',
+        instructions: decodeInstructions('JavaScript', 'uses a loop'),
+        markingCriteria:
+          'The pilot must explain in their own words what the pasted code does overall, including what its loop repeats and when that loop stops. Judge against the pasted code itself. Reward genuine understanding; don’t require every detail.',
+      },
+    ],
+  },
+  {
+    questId: 15,
+    languageId: 2,
+    title: 'Function Forge',
+    concept: 'Functions',
+    difficulty: 'medium',
+    isSideQuest: false,
+    storyText:
+      'The Function Forge builds every tool in the fleet, but one of its machines keeps handing back nothing at all. Learn how JavaScript functions take inputs and return results.',
+    xpReward: 150,
+    displayOrder: 5,
+    prerequisites: [14],
+    challenges: [
+      {
+        type: 'read_and_explain',
+        instructions:
+          'Read forge.js. Explain what each function does with its parameters, and what each console.log prints.',
+        fileName: 'forge.js',
+        code: code(`
+function shieldCost(level) {
+  return level * 40;
+}
+
+const repair = (hull, amount) => hull + amount;
+
+console.log(shieldCost(3));
+console.log(repair(50, 30));
+`),
+        answerKey:
+          'shieldCost is a function declaration with one parameter, level, and returns level * 40, so shieldCost(3) logs 120. repair is an arrow function stored in a const. It takes hull and amount and, without braces, returns hull + amount automatically, so repair(50, 30) logs 80.',
+        markingCriteria:
+          'Must say the logs are 120 and 80, explain that the arguments fill the parameters and the result is returned, and recognise repair as an arrow function that returns hull + amount.',
+      },
+      {
+        type: 'bug_hunt',
+        instructions:
+          'The log should say "ETA: 30 hours", but it says "ETA: undefined hours". Find the line with the bug and explain what goes wrong.',
+        fileName: 'warp.js',
+        code: code(`
+function warpTime(distance, speed) {
+  const time = distance / speed;
+}
+
+const eta = warpTime(120, 4);
+console.log("ETA: " + eta + " hours");
+`),
+        answerKey:
+          'warpTime works out the time (30) and stores it in time, but never returns it. A function without a return statement gives back undefined, so eta is undefined. It should return the result, for example return distance / speed.',
+        markingCriteria:
+          'Must identify the line inside warpTime and explain that the value is calculated but never returned, so the call gives undefined; should suggest adding a return.',
+        bugLine: 2,
+        bugLineContains: 'const time = distance / speed;',
       },
     ],
   },

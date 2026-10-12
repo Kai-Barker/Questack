@@ -15,6 +15,9 @@ const tabs = [
   { to: '/settings', label: 'Settings', within: [] },
 ];
 
+// Only added to the bar for admins
+const adminTab = { to: '/admin', label: 'Admin', within: ['/admin/'] };
+
 interface TopNavProps {
   // A page (the Quest screen) can portal its own controls into the middle of
   // the bar; while it does, the tabs are hidden. See context/NavSlotContext.ts
@@ -24,7 +27,8 @@ interface TopNavProps {
 
 export default function TopNav({ slotRef, slotInUse }: TopNavProps) {
   const { pilot } = usePilot();
-  const { logout } = useAuth();
+  const { user, logout } = useAuth();
+  const visibleTabs = user?.role === 'admin' ? [...tabs, adminTab] : tabs;
   const navigate = useNavigate();
   const { pathname } = useLocation();
 
@@ -69,7 +73,7 @@ export default function TopNav({ slotRef, slotInUse }: TopNavProps) {
             slotInUse ? 'hidden' : 'order-last flex w-full justify-center gap-2 md:order-none md:w-auto md:flex-1'
           }
         >
-          {tabs.map((tab) => {
+          {visibleTabs.map((tab) => {
             const isActive = pathname === tab.to || tab.within.some((prefix) => pathname.startsWith(prefix));
             return (
               <Link

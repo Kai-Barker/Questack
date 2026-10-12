@@ -6,6 +6,9 @@ import type { ChallengeContent, Proficiency } from '../../types/content.js';
 import {
   chatPrompt,
   debriefPrompt,
+  decoderChatPrompt,
+  decoderCheckPrompt,
+  decoderPrompt,
   decodePrompt,
   evaluatePrompt,
   hintPrompt,
@@ -238,4 +241,66 @@ export async function writeDebrief(
     systemInstruction: systemInstruction(proficiency, language),
     temperature: 0.8,
   });
+}
+
+// ---------------------------------------------------------------------
+// Standalone decoder (/decoder). Not a quest, so there's no objective
+// content: just the sector's language, the pilot's rank and their code.
+// ---------------------------------------------------------------------
+
+const decoderSchema = z.object({
+  sections: decodeSchema.shape.sections,
+  question: z.string().trim().min(1).max(1000).nullish(),
+});
+
+export interface DecodedTransmission {
+  sections: DecodedSection[];
+  question: string | null; // null when the text wasn't code
+}
+
+export async function decodeStandalone(
+  language: string,
+  proficiency: Proficiency,
+  code: string,
+): Promise<DecodedTransmission> {
+  const { sections, question } = await askForJson(
+    'flash',
+    decoderPrompt(code),
+    { systemInstruction: systemInstruction(proficiency, language), temperature: 0.4 },
+    decoderSchema,
+  );
+  return { sections, question: question ?? null };
+}
+
+export async function decoderChat(
+  language: string,
+  proficiency: Proficiency,
+  code: string,
+  messages: ChatMessage[],
+  question?: string,
+): Promise<string> {
+  return askForText('flashLite', decoderChatPrompt(code, messages.slice(-CHAT_HISTORY_LIMIT), question), {
+    systemInstruction: systemInstruction(proficiency, language),
+    temperature: 0.7,
+  });
+}
+
+export async function checkDecoderAnswer(
+  language: string,
+  proficiency: Proficiency,
+  code: string,
+  question: string,
+  answer: string,
+): Promise<Evaluation> {
+  const result = await askForJson(
+    'flash',
+    decoderCheckPrompt(code, question, answer),
+    { systemInstruction: systemInstruction(proficiency, language), temperature: 0.2 },
+    evaluationSchema,
+  );
+  return {
+    correct: result.correct,
+    feedback: result.feedback,
+    guidingQuestion: result.correct ? undefined : (result.guidingQuestion ?? undefined),
+  };
 }

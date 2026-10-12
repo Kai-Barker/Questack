@@ -61,3 +61,33 @@ export interface DebriefRequest {
   proficiency: ProficiencyLevel;
   objectives: DebriefObjective[];
 }
+
+// The standalone decoder (/decoder): not a quest, so no challengeId
+
+export interface DecoderRequest {
+  languageId: number;
+  proficiency: ProficiencyLevel;
+  code: string;
+}
+
+export interface DecodedTransmission {
+  sections: DecodedSection[];
+  question: string | null; // null when the text wasn't code
+  checkToken: string | null; // proves the question to the check endpoint
+}
+
+export interface DecoderChatRequest extends DecoderRequest {
+  messages: ChatTurn[];
+  question?: string;
+}
+
+export interface DecoderCheckRequest {
+  proficiency: ProficiencyLevel;
+  code: string; // must be exactly the code that was decoded
+  checkToken: string;
+  answer: string;
+}
+
+export interface DecoderCheckResult extends Evaluation {
+  counted: boolean; // a pass that counted towards the Decoder insignia (false if this code was already decoded)
+}
