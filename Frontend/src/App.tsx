@@ -1,5 +1,6 @@
-import { createBrowserRouter } from 'react-router';
+import { createBrowserRouter, Navigate } from 'react-router';
 import { RouterProvider } from 'react-router/dom';
+import AdminLayout from './components/admin/AdminLayout';
 import AuthShell from './components/auth/AuthShell';
 import GuestOnly from './components/auth/GuestOnly';
 import RequireAdmin from './components/auth/RequireAdmin';
@@ -18,7 +19,8 @@ import PlaceholderPage from './pages/PlaceholderPage';
 import ProfilePage from './pages/ProfilePage';
 import SectorPage from './pages/SectorPage';
 import SettingsPage from './pages/SettingsPage';
-import AdminPage from './pages/admin/AdminPage';
+import AdminAiPage from './pages/admin/AdminAiPage';
+import AdminUsersPage from './pages/admin/AdminUsersPage';
 
 // Session first, then the splash/boot sequence, then whichever page was asked for
 function AuthRoot() {
@@ -69,9 +71,30 @@ const router = createBrowserRouter([
                   // Loaded on demand: the code editor is big, and only this screen needs it
                   { path: 'quest/:questId', lazy: async () => ({ Component: (await import('./pages/QuestPage')).default }) },
                   { path: 'decoder', element: <DecoderPage /> },
-                  // Admins only (the backend checks the role again on every admin request)
-                  { element: <RequireAdmin />, children: [{ path: 'admin', element: <AdminPage /> }] },
                   { path: '*', element: <PlaceholderPage title="Uncharted space" /> },
+                ],
+              },
+            ],
+          },
+          // Admin console: its own shell and nav, and no sector enlistment
+          // needed. RequireAdmin confirms the role with the backend on entry
+          // and on every tab change; the backend checks it on every request too.
+          {
+            path: 'admin',
+            element: <RequireAdmin />,
+            children: [
+              {
+                element: <AdminLayout />,
+                children: [
+                  { index: true, element: <Navigate to="quests" replace /> },
+                  // Loaded on demand, like the Quest screen: it uses the code editor too
+                  {
+                    path: 'quests',
+                    lazy: async () => ({ Component: (await import('./pages/admin/QuestEditorPage')).default }),
+                  },
+                  { path: 'users', element: <AdminUsersPage /> },
+                  { path: 'ai', element: <AdminAiPage /> },
+                  { path: '*', element: <Navigate to="/admin/quests" replace /> },
                 ],
               },
             ],

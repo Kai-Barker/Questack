@@ -87,6 +87,8 @@ describe.each([
   ['questCompleteLimiter', 'questCompleteLimiter', 20],
   ['profileUpdateLimiter', 'profileUpdateLimiter', 20],
   ['callsignLimiter', 'callsignLimiter', 5],
+  ['adminReadLimiter', 'adminReadLimiter', 120],
+  ['adminWriteLimiter', 'adminWriteLimiter', 60],
 ] as const)('%s (per pilot)', (_name, key, limit) => {
   it(`allows ${limit} requests per pilot, and each pilot has their own count`, async () => {
     const app = appWith(limiters[key]);

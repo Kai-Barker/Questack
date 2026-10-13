@@ -5,6 +5,9 @@
 // content file and seeding again updates the quests in place. Pilots'
 // progress is kept. An objective that's been removed from the file is
 // deleted (along with any answers to it).
+//
+// Re-seeding overwrites any changes made to these quests in the admin quest
+// editor. Quests created in the editor (ids from 1000) are never touched.
 import 'dotenv/config';
 import mysql, { type RowDataPacket } from 'mysql2/promise';
 import { dbConnectionOptions } from '../src/config/db.js';
@@ -21,6 +24,8 @@ function check(quest: SeedQuest) {
     problems.push(`unknown booster ${quest.grantsBooster}`);
   }
   if (quest.challenges.length === 0 || quest.challenges.length > 99) problems.push('needs 1-99 objectives');
+  // 1000 and up belong to quests made in the admin quest editor (migration 004)
+  if (quest.questId < 1 || quest.questId >= 1000) problems.push('questId must be 1-999');
 
   quest.challenges.forEach((c, i) => {
     const label = `objective ${i + 1}`;

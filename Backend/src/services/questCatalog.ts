@@ -111,18 +111,31 @@ async function buildCatalog(): Promise<Catalog> {
 
 let cached: { catalog: Catalog; loadedAt: number } | null = null;
 let loading: Promise<Catalog> | null = null;
+// Bumped by invalidateCatalog, so a load that started before an edit isn't cached
+let generation = 0;
 
 export async function getCatalog(): Promise<Catalog> {
   if (cached && Date.now() - cached.loadedAt < CATALOG_TTL_MS) return cached.catalog;
-  loading ??= buildCatalog()
-    .then((catalog) => {
-      cached = { catalog, loadedAt: Date.now() };
-      return catalog;
-    })
-    .finally(() => {
-      loading = null;
-    });
+  if (!loading) {
+    const startedAt = generation;
+    const load: Promise<Catalog> = buildCatalog()
+      .then((catalog) => {
+        if (startedAt === generation) cached = { catalog, loadedAt: Date.now() };
+        return catalog;
+      })
+      .finally(() => {
+        if (loading === load) loading = null;
+      });
+    loading = load;
+  }
   return loading;
+}
+
+// Called after an admin changes a quest, so pilots see it on their next request
+export function invalidateCatalog(): void {
+  generation += 1;
+  cached = null;
+  loading = null;
 }
 
 // The objective in the shape the Ship's AI prompts use

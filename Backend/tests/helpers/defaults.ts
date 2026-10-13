@@ -3,6 +3,7 @@ import type { GenerateContentResponse } from '@google/genai';
 import { pool } from '../../src/config/db.js';
 import { generate } from '../../src/config/gemini.js';
 import * as admin from '../../src/models/adminModel.js';
+import * as adminQuests from '../../src/models/adminQuestModel.js';
 import * as aiUsage from '../../src/models/aiUsageModel.js';
 import * as decoder from '../../src/models/decoderModel.js';
 import * as profiles from '../../src/models/profileModel.js';
@@ -99,6 +100,27 @@ export function applyDefaults() {
   vi.mocked(decoder.countDecodes).mockResolvedValue(0);
 
   vi.mocked(admin.getOverview).mockResolvedValue({ ...ADMIN_OVERVIEW });
+  vi.mocked(admin.listUsers).mockResolvedValue([]);
+  vi.mocked(admin.findAdminUser).mockResolvedValue(null);
+  vi.mocked(admin.setUserActive).mockResolvedValue(undefined);
+  vi.mocked(admin.recentAiUsage).mockResolvedValue([]);
+
+  // The quest editor: an empty galaxy with the two launch sectors
+  vi.mocked(adminQuests.listSectors).mockResolvedValue([
+    { languageId: 1, name: 'csharp', displayName: 'C#' },
+    { languageId: 2, name: 'javascript', displayName: 'JavaScript' },
+  ]);
+  vi.mocked(adminQuests.listQuests).mockResolvedValue([]);
+  vi.mocked(adminQuests.findQuest).mockResolvedValue(null);
+  vi.mocked(adminQuests.lockQuestGraph).mockResolvedValue({ quests: [], edges: [] });
+  vi.mocked(adminQuests.insertQuest).mockResolvedValue(1000);
+  vi.mocked(adminQuests.updateQuest).mockResolvedValue(undefined);
+  vi.mocked(adminQuests.replacePrerequisites).mockResolvedValue(undefined);
+  // Existing objectives keep their id; new ones get 2000, 2001, …
+  vi.mocked(adminQuests.syncObjectives).mockImplementation(async (_connection, _questId, objectives) =>
+    objectives.map((o, i) => o.challengeId ?? 2000 + i),
+  );
+  vi.mocked(adminQuests.deleteDraftQuest).mockResolvedValue('deleted');
 
   // JSON calls (evaluate, decode) get JSON back; everything else gets text
   vi.mocked(generate).mockImplementation(async (model, _contents, config = {}) => ({

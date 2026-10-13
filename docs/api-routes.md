@@ -59,13 +59,33 @@ Quest AI routes check that the objective belongs to a quest the pilot has unlock
 
 ## Admin only
 
-Mounted at `/admin` behind `appIpLimiter`, `requireAuth` and **`requireAdmin`**. A signed-in pilot without the admin role gets **`403`** "Command clearance required, Pilot." before any query runs.
+Mounted at `/admin` behind `appIpLimiter`, `requireAuth` and **`requireAdmin`**, so every route below re-reads the account's role from the database first. A signed-in pilot without the admin role gets **`403`** "Command clearance required, Pilot." before any query runs. Every response is `Cache-Control: no-store` (they include answer keys and pilots' details). Limits are per admin: reads share **120/min**, writes share **60 per 15 min**.
 
-| Method | Path | Notes | Rate limit |
-|---|---|---|---|
-| GET | `/admin/overview` | `{ pilots, activePilots, publishedQuests, draftQuests, aiCallsToday, aiTokensToday }`: totals only | 120/min |
+| Method | Path | Body | Returns | Limit |
+|---|---|---|---|---|
+| GET | `/admin/session` | | `{ user }`. The frontend calls it on entering the console and on every admin tab change. | read |
+| GET | `/admin/overview` | | `{ pilots, activePilots, publishedQuests, draftQuests, aiCallsToday, aiTokensToday }`: totals only | read |
+| GET | `/admin/sectors` | | `{ sectors: [{ languageId, name, displayName }] }` | read |
+| GET | `/admin/quests` | | `{ quests }`: every quest, drafts included, with status and objective count | read |
+| GET | `/admin/quests/:id` | | `{ quest }` with prerequisites and objectives, **including answer keys, marking criteria and bug lines** | read |
+| POST | `/admin/quests` | quest (below) | `201 { quest }`. Added at the end of its sector. | write |
+| PUT | `/admin/quests/:id` | quest (below) | `{ quest }`. Existing objectives keep their id (and pilots' answers); ones left out are deleted. | write |
+| DELETE | `/admin/quests/:id` | | `204`. **Drafts only**, and only if no pilot has played it: `409` otherwise. Hide a published quest by saving it as a draft. | write |
+| GET | `/admin/users` | | `{ users: [{ userId, callsign, email, role, isActive, level, totalXp, lastActive, createdAt }] }` | read |
+| PATCH | `/admin/users/:id` | `{ isActive }` | `{ user }`. Locks the pilot out on their next request. `400` for your own account, `409` for another admin. | write |
+| GET | `/admin/ai-usage` | | `{ usage }`: the last 50 Ship's AI calls (pilot, feature, model, tokens, flagged). No prompt or reply text is stored. | read |
 
-The quest editor (create, edit, publish) is planned for the next sprint and will be mounted here. See [sprint-plan.md](sprint-plan.md).
+**Quest body:** `{ languageId, title, concept, difficulty, status: 'draft' | 'published', isSideQuest, storyText, xpReward, prerequisiteIds[], objectives[] }`, where each objective is `{ challengeId?, type: 'read_and_explain' | 'bug_hunt' | 'decode_transmission', instructions, fileName?, codeSnippet?, answerKey?, markingCriteria, bugLine? }`. Unknown fields are rejected. The backend checks:
+
+- Read-and-explain and bug-hunt objectives need a file name, code and an answer key; decode objectives never store any. A bug hunt's `bugLine` must be inside its code.
+- Answer keys and marking criteria can't mention line numbers (the Ship's AI could repeat them).
+- Publishing needs at least one objective, and every prerequisite published.
+- Prerequisites must be in the same sector, and **circular chains are rejected** (`400` naming the loop).
+- A published quest can't go back to draft while published quests depend on it, and a quest others depend on can't move sector (`409`).
+
+Validation errors come back as `400 { error, fields }`, with objective fields keyed by position, e.g. `objectives.2.answerKey`. A save clears the quest catalog cache, so pilots see the change on their next request.
+
+Re-running `npm run db:seed` overwrites edits to the seeded quests (ids below 1000). Quests created in the editor start at id 1000 (migration 004) and are never touched by the seed.
 
 ## Trying it
 
@@ -73,4 +93,4 @@ Make the requests from the app, or from Insomnia or Postman with the session coo
 
 1. `POST /api/auth/login` with `{ "identifier": "...", "password": "..." }`. The response sets `questack_session`.
 2. Send that cookie with the other requests (Insomnia keeps it automatically).
-3. To test the role check, call `GET /api/admin/overview` with a normal pilot (expect `403`), then with an account promoted by `npm run db:make-admin -- <callsign>` (expect `200`).
+3. To test the role check, call `GET /api/admin/session` (or any admin route) with a normal pilot (expect `403`), then with an account promoted by `npm run db:make-admin -- <callsign>` (expect `200`).

@@ -9,7 +9,7 @@ export const server = setupServer();
 // Full URL for an API path, as the app's axios instance calls it
 export const apiUrl = (path: string) => `http://localhost:5173/api${path}`;
 
-type Method = 'get' | 'post' | 'patch';
+type Method = 'get' | 'post' | 'put' | 'patch' | 'delete';
 
 // Answers one API route with a fixed status and body, and records each
 // request so the test can check what was sent

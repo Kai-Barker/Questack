@@ -1,10 +1,12 @@
-import { useLayoutEffect, useRef, type Ref } from 'react';
+import { useRef, type Ref } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router';
 import { useAuth } from '../../hooks/useAuth';
+import { useNavHeight } from '../../hooks/useNavHeight';
 import { usePilot } from '../../hooks/usePilot';
 import { formatNumber, initials } from '../../utils/format';
 import ChamferFrame from '../ui/ChamferFrame';
 import ProgressBar from '../ui/ProgressBar';
+import NavTab from './NavTab';
 import { BoltIcon, HomeIcon, SignOutIcon } from '../ui/icons';
 
 // `within` lists the screens that live inside a tab, so Galaxy Map stays lit
@@ -15,8 +17,9 @@ const tabs = [
   { to: '/settings', label: 'Settings', within: [] },
 ];
 
-// Only added to the bar for admins
-const adminTab = { to: '/admin', label: 'Admin', within: ['/admin/'] };
+// Only added to the bar for admins. Opens the admin console, which has its
+// own nav (components/admin/AdminNav.tsx).
+const adminTab = { to: '/admin/quests', label: 'Admin', within: ['/admin'] };
 
 interface TopNavProps {
   // A page (the Quest screen) can portal its own controls into the middle of
@@ -37,17 +40,7 @@ export default function TopNav({ slotRef, slotInUse }: TopNavProps) {
     navigate('/login', { replace: true });
   }
   const headerRef = useRef<HTMLElement>(null);
-
-  // Publish the bar's height as --nav-h so full-height screens can fill the rest
-  useLayoutEffect(() => {
-    const header = headerRef.current;
-    if (!header) return;
-    const observer = new ResizeObserver(() => {
-      document.documentElement.style.setProperty('--nav-h', `${header.offsetHeight}px`);
-    });
-    observer.observe(header);
-    return () => observer.disconnect();
-  }, []);
+  useNavHeight(headerRef);
 
   return (
     <header ref={headerRef} className="border-b border-line/60">
@@ -73,28 +66,15 @@ export default function TopNav({ slotRef, slotInUse }: TopNavProps) {
             slotInUse ? 'hidden' : 'order-last flex w-full justify-center gap-2 md:order-none md:w-auto md:flex-1'
           }
         >
-          {visibleTabs.map((tab) => {
-            const isActive = pathname === tab.to || tab.within.some((prefix) => pathname.startsWith(prefix));
-            return (
-              <Link
-                key={tab.to}
-                to={tab.to}
-                aria-current={isActive ? 'page' : undefined}
-                className="group block focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-              >
-                <ChamferFrame
-                  size="md"
-                  grow="sm"
-                  borderClassName={isActive ? 'bg-accent/70' : 'bg-line group-hover:bg-line-bright'}
-                  innerClassName={`px-4 py-2 font-display text-xs font-semibold tracking-[0.2em] uppercase sm:px-8 ${
-                    isActive ? 'bg-accent-deep text-accent' : 'bg-space-950 text-slate-300 group-hover:text-slate-100'
-                  }`}
-                >
-                  {tab.label}
-                </ChamferFrame>
-              </Link>
-            );
-          })}
+          {visibleTabs.map((tab) => (
+            <NavTab
+              key={tab.to}
+              to={tab.to}
+              active={pathname === tab.to || tab.within.some((prefix) => pathname.startsWith(prefix))}
+            >
+              {tab.label}
+            </NavTab>
+          ))}
         </nav>
 
         {pilot && (

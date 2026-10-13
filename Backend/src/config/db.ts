@@ -42,4 +42,10 @@ export const pool = mysql.createPool({
   queueLimit: 500,
   // Give up on a database that doesn't answer rather than hang
   connectTimeout: 10_000,
+  // Opening a connection to the hosted database takes about a second (TLS),
+  // so idle ones are kept for 5 minutes instead of mysql2's default 1. An
+  // admin editing a quest, or a pilot reading a quest, then saves on a warm
+  // connection. Keep-alive stops the network dropping them while idle.
+  idleTimeout: 5 * 60_000,
+  enableKeepAlive: true,
 });

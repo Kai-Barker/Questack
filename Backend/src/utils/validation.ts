@@ -19,14 +19,16 @@ function friendlyMessage(issue: z.core.$ZodIssue): string {
   return issue.message;
 }
 
-// Validates a request body. Errors come back as { error, fields: { fieldName: message } }
-export function parse<T>(schema: z.ZodType<T>, body: unknown): T {
+// Validates a request body. Errors come back as { error, fields: { fieldName: message } }.
+// With fullPaths, nested fields keep their whole path (e.g. objectives.2.answerKey),
+// so a form with repeated sections can mark the right one.
+export function parse<T>(schema: z.ZodType<T>, body: unknown, { fullPaths = false } = {}): T {
   const result = schema.safeParse(body);
   if (result.success) return result.data;
 
   const fields: Record<string, string> = {};
   for (const issue of result.error.issues) {
-    const field = String(issue.path[0] ?? 'form');
+    const field = (fullPaths ? issue.path.map(String).join('.') : String(issue.path[0] ?? '')) || 'form';
     fields[field] ??= friendlyMessage(issue);
   }
   throw new HttpError(400, 'Check the highlighted fields.', fields);

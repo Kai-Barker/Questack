@@ -145,3 +145,24 @@ export const callsignLimiter = rateLimit({
   keyGenerator: perPilot('callsign'),
   message: limited('Callsign changes are limited to 5 attempts a day. Try again tomorrow.'),
 });
+
+// Admin console. Every admin request has already passed requireAuth and
+// requireAdmin (role re-read from the database), so these count per admin.
+// Reads cover the clearance check made on each admin tab, the quest list and
+// the users and AI tables.
+export const adminReadLimiter = rateLimit({
+  ...shared,
+  windowMs: MINUTE,
+  limit: 120,
+  keyGenerator: perPilot('admin-read'),
+  message: limited('Too many requests, Commander. Try again in a minute.'),
+});
+
+// Saving, publishing, deleting a draft, activating or deactivating a pilot
+export const adminWriteLimiter = rateLimit({
+  ...shared,
+  windowMs: 15 * MINUTE,
+  limit: 60,
+  keyGenerator: perPilot('admin-write'),
+  message: limited('Too many changes, Commander. Wait a few minutes, then try again.'),
+});
