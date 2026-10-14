@@ -9,7 +9,7 @@ Status key: ✅ done · 🟡 partly done (what's left is in the [sprint plan](sp
 | Feature | Status | Notes |
 |---|---|---|
 | Registration, login, logout and profile | ✅ | JWT httpOnly cookie, bcrypt, rate limits. Profile with stats, insignia, XP history and flight log. |
-| User roles (user / admin) | ✅ | `requireAdmin` on `/api/admin/*`, admin console with its own nav (re-checks the role on entry and each tab), `db:make-admin` script |
+| User roles (user / admin) | ✅ | `requireAdmin` on every `/api/admin/*` route (the role is re-read from the database on each request), per-admin rate limits, and an admin console with its own nav that re-checks the role with the server on entry and on every tab change. `db:make-admin` script. |
 | Onboarding: language, proficiency class, starting concept | ✅ | `/onboarding`, shown automatically to pilots with no sector |
 | Galaxy Map with sectors, quests and unlocked progress | ✅ | Map and list views |
 | Sector Map with locked, available and cleared quests | ✅ | Layout worked out from prerequisites |
@@ -20,7 +20,7 @@ Status key: ✅ done · 🟡 partly done (what's left is in the [sprint plan](sp
 | XP, levels and progress tracking | ✅ | Levels from total XP; quest unlocking by prerequisites |
 | Quest results screen | ✅ | Mission debrief modal: XP, unlocks, AI debrief |
 | Settings | ✅ | Account details, class per sector, sign out |
-| Admin tools to create and manage quests | ✅ | Quest editor (Admin › Quests): create, edit, publish or hide as draft, delete unplayed drafts, prerequisites with a circular-chain check, objectives by type, preview. The launch quests are still seeded from `Backend/database/seeds/questContent.ts`. |
+| Admin tools to create and manage quests | ✅ | Quest editor (Admin › Quests): quest list per sector with search, create and edit, publish or hide as a draft, delete drafts no pilot has played, prerequisites with a same-sector rule and a circular-chain check, objectives by type (read and explain, bug hunt, decode) with reordering, preview as a pilot sees it, and an unsaved-changes guard. Changes reach pilots on their next request. The launch quests are still seeded from `Backend/database/seeds/questContent.ts`; editor-made quests start at id 1000 so the seed never overwrites them. |
 | Content: each sector covers variables, conditionals, loops, functions | ✅ | C#: Variables, Data types, Loops, Switch, Functions. JS: Variables, Data types, Conditionals, Loops, Functions. |
 | Deployment | ⬜ | First item of Sprint 3 (week of 14 Oct), see the [sprint plan](sprint-plan.md) |
 
@@ -37,7 +37,7 @@ Status key: ✅ done · 🟡 partly done (what's left is in the [sprint plan](sp
 | Debrief quests (solve, then justify) | ⬜ |
 | Leaderboards | ⬜ |
 | Additional sectors (Python, TypeScript) | ⬜ (sectors are data, so adding one is a seed change) |
-| Admin user management and AI-usage view | 🟡 (light versions: Admin › Users lists pilots and deactivates them; Admin › AI shows totals and the last 50 calls) |
+| Admin user management and AI-usage view | 🟡 Light versions built early: Admin › Users lists pilots (search, level, last active) and deactivates or reactivates them, locking them out on their next request; Admin › AI shows fleet totals and the last 50 Ship's AI calls (counts only, no text). Not done: changing roles from the console, per-pilot or per-feature usage breakdowns. |
 
 ## Future considerations
 
@@ -56,6 +56,8 @@ Status key: ✅ done · 🟡 partly done (what's left is in the [sprint plan](sp
 | **Decode the Transmission comes in two forms.** Inside quests it is a graded objective that earns XP. The **standalone decoder** (`/decoder`) is *not* a quest: no XP or quest progress, but passing its comprehension check counts towards the Decoder insignia. | The SMART "Code learning" objective is about understanding any code the learner brings, whenever they need it. Tying that to quest progress would gate it behind unlocks. |
 | **The admin quest editor moved to Sprint 3.** Roles were enforced first and quests were seeded from code; the editor followed. | The learner loop (the core of the MVP and of the AI marks) came first. Seeded content let every quest type be tested end to end. |
 | **The admin console has its own nav** (Quests, Users, AI, Exit Admin) instead of being one page in the pilot app. | Admin work is a separate mode: it doesn't need the pilot's XP bar or an enlisted sector, and the console re-checks the role each time it's entered. |
+| **Published quests can't be deleted, only moved back to draft.** Drafts can be deleted only if no pilot has played them. | Deleting a quest would also delete pilots' attempts and flight-log history. A draft is hidden from pilots, which is all an admin needs. |
+| **Admin user management and the AI-usage view were built early** (Nice-to-have), in light versions. | They were small once the admin console and its role checks existed, and they make the admin role worth demoing. |
 | **Streaks, insignia and boosters were built early** (Nice-to-have). | They were cheap once XP tracking existed and they fill out the profile wireframe. Nothing Must-have was delayed for them. |
 | **Gemini Flash is pinned to a version, with automatic fallback to Flash-Lite.** | The newest Flash builds were often overloaded on the free tier (see [risks.md](risks.md)). |
-| **Schema additions** (featured insignia, boosters, decoder records). | See [erd-changes.md](erd-changes.md). |
+| **Schema additions** (featured insignia, boosters, decoder records) and editor id ranges (migration 004). | See [erd-changes.md](erd-changes.md). |
