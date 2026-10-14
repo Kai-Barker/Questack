@@ -35,10 +35,23 @@ const RETRY_DELAYS_MS: Record<ModelName, number[]> = {
   flashLite: [1000, 2000, 4000],
 };
 
+// Longest one call may take. When a model is overloaded its calls can hang
+// instead of failing, and the SDK has no limit of its own, so without this a
+// request could wait forever (the browser gives up after 60 s). Flash plus a
+// Flash-Lite fallback both timing out still answers within that.
+export const CALL_TIMEOUT_MS: Record<ModelName, number> = {
+  flash: 20_000,
+  flashLite: 15_000,
+};
+// Our own status for a call that hit CALL_TIMEOUT_MS
+const TIMED_OUT = 408;
+
 // Google's servers are temporarily busy or broken: worth waiting and retrying
 const RETRYABLE_STATUSES = new Set([500, 503, 504]);
-// 429 = this model's rate limit hit. Retrying won't help, but the other model has its own limit.
-const FALLBACK_STATUSES = new Set([...RETRYABLE_STATUSES, 429]);
+// 429 = this model's rate limit hit; 408 = it timed out. Retrying the same
+// model won't help (and a timeout has already cost the most time), but the
+// other model may be fine.
+const FALLBACK_STATUSES = new Set([...RETRYABLE_STATUSES, 429, TIMED_OUT]);
 
 function statusOf(err: unknown): number | undefined {
   return err instanceof ApiError ? err.status : undefined;
@@ -69,13 +82,20 @@ async function generateWithRetries(
   onEvent: GenerateEventHandler,
 ): Promise<GenerateContentResponse> {
   for (let attempt = 0; ; attempt++) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), CALL_TIMEOUT_MS[modelName]);
     try {
       return await ai.models.generateContent({
         model: MODELS[modelName],
         contents,
-        config: { maxOutputTokens: MAX_OUTPUT_TOKENS[modelName], ...config },
+        config: { maxOutputTokens: MAX_OUTPUT_TOKENS[modelName], ...config, abortSignal: controller.signal },
       });
-    } catch (err) {
+    } catch (caught) {
+      // A hung call becomes an ApiError like any other failure, so the
+      // fallback, the cooldown and the error handler all treat it the same
+      const err = controller.signal.aborted
+        ? new ApiError({ message: `${MODELS[modelName]} timed out after ${CALL_TIMEOUT_MS[modelName] / 1000}s`, status: TIMED_OUT })
+        : caught;
       const status = statusOf(err);
       const delays = RETRY_DELAYS_MS[modelName];
       const delayMs = delays[attempt];
@@ -91,6 +111,8 @@ async function generateWithRetries(
         delayMs,
       });
       await sleep(delayMs);
+    } finally {
+      clearTimeout(timer);
     }
   }
 }
@@ -105,12 +127,27 @@ export interface GenerateResult {
 // Retries busy errors with increasing waits, then falls back to Flash-Lite
 // if Flash still fails. Throws only if both models fail.
 // Pass `onEvent` to show your own loading messages (see src/utils/commsMessages.ts).
+// Once Flash has failed and a call has fallen back, Flash is skipped for this
+// long. Otherwise, while Flash is down, every request would first wait for its
+// error and a retry before reaching Flash-Lite.
+export const FLASH_COOLDOWN_MS = 2 * 60 * 1000;
+let flashDownUntil = 0;
+
+// For tests: forget that Flash was down
+export function resetFlashCooldown(): void {
+  flashDownUntil = 0;
+}
+
 export async function generate(
   modelName: ModelName,
   contents: string,
   config: GenerateContentConfig = {},
   onEvent: GenerateEventHandler = logEvent,
 ): Promise<GenerateResult> {
+  if (modelName === 'flash' && Date.now() < flashDownUntil) {
+    const response = await generateWithRetries('flashLite', contents, config, onEvent);
+    return { response, modelUsed: 'flashLite', usedFallback: true };
+  }
   try {
     const response = await generateWithRetries(modelName, contents, config, onEvent);
     return { response, modelUsed: modelName, usedFallback: false };
@@ -120,6 +157,7 @@ export async function generate(
     if (!canFallBack) {
       throw err;
     }
+    flashDownUntil = Date.now() + FLASH_COOLDOWN_MS;
     onEvent({ type: 'fallback', from: 'flash', to: 'flashLite', status });
     const response = await generateWithRetries('flashLite', contents, config, onEvent);
     return { response, modelUsed: 'flashLite', usedFallback: true };

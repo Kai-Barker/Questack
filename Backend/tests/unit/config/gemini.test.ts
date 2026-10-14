@@ -7,7 +7,9 @@ import type * as GeminiModule from '../../../src/config/gemini.js';
 // loads the real module and fakes the Gemini SDK call underneath it.
 // Fake timers skip the waits between retries.
 
-const { ai, generate, MODELS } = await vi.importActual<typeof GeminiModule>('../../../src/config/gemini.js');
+const { ai, generate, MODELS, FLASH_COOLDOWN_MS, CALL_TIMEOUT_MS, resetFlashCooldown } = await vi.importActual<typeof GeminiModule>(
+  '../../../src/config/gemini.js',
+);
 
 const OK = { text: 'ok' } as GenerateContentResponse;
 const busy = (status: number) => new ApiError({ message: `status ${status}`, status });
@@ -16,6 +18,7 @@ let sdk: ReturnType<typeof vi.spyOn>;
 
 beforeEach(() => {
   vi.useFakeTimers();
+  resetFlashCooldown();
   sdk = vi.spyOn(ai.models, 'generateContent');
 });
 
@@ -32,6 +35,56 @@ async function run(...args: Parameters<typeof generate>) {
   return result;
 }
 
+describe('Flash cooldown', () => {
+  it('skips Flash for a while after it fails, then tries it again', async () => {
+    sdk.mockImplementation(async ({ model }: { model: string }) => {
+      if (model === MODELS.flash) throw busy(503);
+      return OK;
+    });
+
+    await run('flash', 'first');
+    const flashCalls = () =>
+      sdk.mock.calls.filter((call: unknown[]) => (call[0] as { model: string }).model === MODELS.flash).length;
+    expect(flashCalls()).toBe(2); // first try + one retry, then the fallback
+
+    const second = await run('flash', 'second');
+    expect(second.modelUsed).toBe('flashLite');
+    expect(flashCalls()).toBe(2); // Flash wasn't tried again
+
+    vi.advanceTimersByTime(FLASH_COOLDOWN_MS);
+    await run('flash', 'third');
+    expect(flashCalls()).toBe(4); // cooldown over: Flash gets another chance
+  });
+});
+
+describe('call timeout', () => {
+  it('gives up on a hung Flash call and answers with Flash-Lite', async () => {
+    // Flash never answers (until its abort signal fires); Flash-Lite is fine
+    sdk.mockImplementation(({ model, config }: { model: string; config: { abortSignal: AbortSignal } }) =>
+      model === MODELS.flash
+        ? new Promise((_, reject) => config.abortSignal.addEventListener('abort', () => reject(new Error('aborted'))))
+        : Promise.resolve(OK),
+    );
+    const events = vi.fn();
+
+    const result = await run('flash', 'Hello', {}, events);
+
+    expect(result).toEqual({ response: OK, modelUsed: 'flashLite', usedFallback: true });
+    // A timeout isn't retried on the same model: straight to the fallback
+    expect(sdk).toHaveBeenCalledTimes(2);
+    expect(events).toHaveBeenCalledWith({ type: 'fallback', from: 'flash', to: 'flashLite', status: 408 });
+    expect(CALL_TIMEOUT_MS.flash + CALL_TIMEOUT_MS.flashLite).toBeLessThan(60_000); // inside the browser's limit
+  });
+
+  it('reports a timeout on both models as a Gemini error', async () => {
+    sdk.mockImplementation(({ config }: { config: { abortSignal: AbortSignal } }) =>
+      new Promise((_, reject) => config.abortSignal.addEventListener('abort', () => reject(new Error('aborted')))),
+    );
+
+    await expect(run('flash', 'Hello', {}, vi.fn())).rejects.toMatchObject({ status: 408 });
+  });
+});
+
 describe('generate', () => {
   it('returns the first reply, using the model’s default output limit', async () => {
     sdk.mockResolvedValue(OK);
@@ -42,7 +95,7 @@ describe('generate', () => {
     expect(sdk).toHaveBeenCalledWith({
       model: MODELS.flash,
       contents: 'Hello',
-      config: { maxOutputTokens: 2048, temperature: 0.5 },
+      config: { maxOutputTokens: 2048, temperature: 0.5, abortSignal: expect.any(AbortSignal) },
     });
     expect(events).not.toHaveBeenCalled();
   });
