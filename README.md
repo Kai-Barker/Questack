@@ -11,7 +11,7 @@ DV300 Theme 4: AI-Driven Application · Kai Barker (241065)
 | Area | What's there |
 |---|---|
 | Accounts | Enlist (sign up), log in, log out. JWT in an httpOnly cookie, bcrypt-hashed access codes, rate-limited. |
-| Roles | `user` and `admin`. Admin-only API routes (`requireAdmin`) and an admin-only nav link and console. |
+| Roles | `user` and `admin`. Every `/api/admin/*` route re-reads the role from the database (`requireAdmin`), and the admin console re-checks it with the server on entry and on every tab change. |
 | Onboarding | After enlisting: choose a first sector, proficiency class and starting concept. |
 | Galaxy Map | Sectors with progress (map and list views), the mission to continue, and the pilot's status. |
 | Sector Map | Quests laid out by prerequisites, with locked, available and cleared states, and rank per sector. |
@@ -20,6 +20,7 @@ DV300 Theme 4: AI-Driven Application · Kai Barker (241065)
 | Decoder | Paste any code and the Ship's AI walks you through it section by section, then sets a comprehension check. Not a quest; the code is never stored. |
 | Progress | XP, levels, streaks, insignia, an XP history chart, and a flight log on the profile. |
 | Settings | Account details, proficiency class per sector, sign out. |
+| Admin console | Its own nav: **Quests** (create, edit, publish or hide as draft, prerequisites with a circular-chain check, objectives by type, preview), **Users** (activate or deactivate pilots), **AI** (usage totals and recent calls), and **Exit Admin**. |
 
 ## Tech stack
 
@@ -66,6 +67,8 @@ npm install
 npm run dev                 # app on http://localhost:5173 (proxies /api to the backend)
 ```
 
+After pulling new changes, run `npm install` in both apps and `npm run db:migrate` in `Backend/`, so new migrations (e.g. 004, the quest editor's id ranges) are applied.
+
 The frontend reaches the API through Vite's `/api` proxy, so the session cookie stays first-party. Leave `VITE_API_URL` unset locally.
 
 ### Test accounts
@@ -81,7 +84,7 @@ npm run db:make-admin -- <callsign or email> --revoke   # back to a regular pilo
 | Account | Role | Purpose |
 |---|---|---|
 | *(your test pilot)* | user | Normal learner flow |
-| *(your admin)* | admin | Shows the Admin tab and console |
+| SYNERGYY-4 | admin | Shows the Admin tab and console |
 
 ## Tests
 
@@ -105,6 +108,6 @@ npm run lint
 | [docs/ai-prompt-design.md](docs/ai-prompt-design.md) | How the Ship's AI prompts and requests are designed, validated and made reliable |
 | [docs/erd-changes.md](docs/erd-changes.md) | Schema changes since the proposal's ERD |
 | [docs/risks.md](docs/risks.md) | Technical challenges from the pitch: what happened and what remains |
-| [docs/sprint-plan.md](docs/sprint-plan.md) | Plan from the milestone to the final hand-in |
+| [docs/sprint-plan.md](docs/sprint-plan.md) | Completed and planned sprints, linked to the [Kanban board](https://www.figma.com/board/7CAN507piPnhhPYq8rX5Yl/Questack-planning) |
 | [docs/bug-log.md](docs/bug-log.md) | Bug and issue log |
 | [docs/usability-test.md](docs/usability-test.md) | Informal usability test notes |
