@@ -1,9 +1,10 @@
-import { fireEvent, render, screen, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import mermaid from 'mermaid';
 import type { ComponentProps } from 'react';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import BriefingPanel from '../../src/components/quest/BriefingPanel';
+import { LOADING_LINE_MS, LOADING_LINES } from '../../src/config/loadingLines';
 import CodePanel from '../../src/components/quest/CodePanel';
 import CodeViewer from '../../src/components/quest/CodeViewer';
 import MarkdownBriefing from '../../src/components/quest/MarkdownBriefing';
@@ -375,6 +376,48 @@ describe('ShipsAiPanel', () => {
   it('shows when comms are offline', () => {
     renderComms({ online: false });
     expect(screen.getByText('Offline')).toBeInTheDocument();
+  });
+
+  describe('while the Ship’s AI is working', () => {
+    afterEach(() => vi.useRealTimers());
+
+    it('opens with what it’s doing, then moves through other lines', () => {
+      vi.useFakeTimers();
+      renderComms({ busy: true, waitKind: 'submit' });
+      expect(screen.getByText('Assessing your answer…')).toBeInTheDocument();
+
+      act(() => vi.advanceTimersByTime(LOADING_LINE_MS));
+      expect(screen.queryByText('Assessing your answer…')).not.toBeInTheDocument();
+      expect(LOADING_LINES).toContain(screen.getByText(/…$/, { selector: '[aria-hidden="true"]' }).textContent);
+    });
+
+    it('gives screen readers one steady status, not every line', () => {
+      renderComms({ busy: true });
+      expect(screen.getByText("The Ship's AI is working on it")).toBeInTheDocument();
+      expect(screen.getByText('Transmitting…')).toHaveAttribute('aria-hidden', 'true');
+    });
+  });
+
+  describe('answering from the chat', () => {
+    it('offers to submit the pilot’s latest message as their answer', async () => {
+      const onSubmitAsAnswer = vi.fn();
+      renderComms({ onSubmitAsAnswer });
+
+      await userEvent.click(screen.getByRole('button', { name: 'Submit as answer' }));
+      expect(onSubmitAsAnswer).toHaveBeenCalledWith('Help?');
+      expect(screen.getByLabelText("Message the Ship's AI")).toHaveAttribute(
+        'placeholder',
+        "Ask the Ship's AI for guidance, or write your answer and submit it…",
+      );
+    });
+
+    it('doesn’t offer it when the objective can’t take an answer, or while busy', () => {
+      renderComms();
+      expect(screen.queryByRole('button', { name: 'Submit as answer' })).not.toBeInTheDocument();
+      cleanup();
+      renderComms({ onSubmitAsAnswer: vi.fn(), busy: true });
+      expect(screen.queryByRole('button', { name: 'Submit as answer' })).not.toBeInTheDocument();
+    });
   });
 });
 

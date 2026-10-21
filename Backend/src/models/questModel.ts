@@ -40,6 +40,7 @@ export interface ChallengeRow extends RowDataPacket {
   answer_key: string | null;
   marking_criteria: string | null;
   bug_line: number | null;
+  alt_bug_lines: string | null; // comma-separated, e.g. '1,7'
 }
 
 export async function loadCatalogRows() {
@@ -56,7 +57,7 @@ export async function loadCatalogRows() {
     ),
     pool.execute<ChallengeRow[]>(
       `SELECT c.challenge_id, c.quest_id, c.challenge_order, c.challenge_type, c.instructions,
-              d.file_name, d.code_snippet, d.answer_key, d.marking_criteria, d.bug_line
+              d.file_name, d.code_snippet, d.answer_key, d.marking_criteria, d.bug_line, d.alt_bug_lines
        FROM challenges c
        JOIN quests q ON q.quest_id = c.quest_id
        LEFT JOIN code_challenge_details d ON d.challenge_id = c.challenge_id

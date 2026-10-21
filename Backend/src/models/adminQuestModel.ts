@@ -1,5 +1,6 @@
 import type { PoolConnection, ResultSetHeader, RowDataPacket } from 'mysql2/promise';
 import { pool } from '../config/db.js';
+import { formatLineList, parseLineList } from '../utils/lineList.js';
 
 // Quest content for the admin quest editor: every quest, draft or published,
 // including answer keys, marking criteria and bug lines. Only the admin
@@ -31,6 +32,7 @@ export interface AdminObjective {
   answerKey: string | null;
   markingCriteria: string;
   bugLine: number | null;
+  altBugLines: number[]; // other lines where a fix also counts
 }
 
 export interface AdminQuest {
@@ -69,6 +71,7 @@ export interface ObjectiveFields {
   answerKey: string | null;
   markingCriteria: string;
   bugLine: number | null;
+  altBugLines: number[];
 }
 
 export interface QuestNode {
@@ -125,7 +128,7 @@ export async function findQuest(questId: number): Promise<AdminQuest | null> {
     ),
     pool.execute<RowDataPacket[]>(
       `SELECT c.challenge_id, c.challenge_type, c.instructions,
-              d.file_name, d.code_snippet, d.answer_key, d.marking_criteria, d.bug_line
+              d.file_name, d.code_snippet, d.answer_key, d.marking_criteria, d.bug_line, d.alt_bug_lines
        FROM challenges c
        LEFT JOIN code_challenge_details d ON d.challenge_id = c.challenge_id
        WHERE c.quest_id = ?
@@ -156,6 +159,7 @@ export async function findQuest(questId: number): Promise<AdminQuest | null> {
       answerKey: c.answer_key ?? null,
       markingCriteria: c.marking_criteria ?? '',
       bugLine: c.bug_line ?? null,
+      altBugLines: parseLineList(c.alt_bug_lines ?? null),
     })),
   };
 }
@@ -310,11 +314,21 @@ export async function syncObjectives(
   }
 
   await connection.query(
-    `INSERT INTO code_challenge_details (challenge_id, file_name, code_snippet, answer_key, marking_criteria, bug_line)
-     VALUES ${placeholders(objectives.length, 6)}
+    `INSERT INTO code_challenge_details
+       (challenge_id, file_name, code_snippet, answer_key, marking_criteria, bug_line, alt_bug_lines)
+     VALUES ${placeholders(objectives.length, 7)}
      ON DUPLICATE KEY UPDATE file_name = VALUES(file_name), code_snippet = VALUES(code_snippet),
-       answer_key = VALUES(answer_key), marking_criteria = VALUES(marking_criteria), bug_line = VALUES(bug_line)`,
-    objectives.flatMap((o, i) => [ids[i] ?? null, o.fileName, o.codeSnippet, o.answerKey, o.markingCriteria, o.bugLine]),
+       answer_key = VALUES(answer_key), marking_criteria = VALUES(marking_criteria), bug_line = VALUES(bug_line),
+       alt_bug_lines = VALUES(alt_bug_lines)`,
+    objectives.flatMap((o, i) => [
+      ids[i] ?? null,
+      o.fileName,
+      o.codeSnippet,
+      o.answerKey,
+      o.markingCriteria,
+      o.bugLine,
+      formatLineList(o.altBugLines),
+    ]),
   );
   return ids;
 }

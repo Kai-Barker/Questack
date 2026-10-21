@@ -56,7 +56,20 @@ describe('ProfilePage', () => {
     await screen.findByRole('heading', { level: 1, name: 'Vega-7' });
 
     await user.click(screen.getByRole('button', { name: 'Choose featured' }));
-    expect(screen.getByRole('button', { name: /^First Deploy/ })).toHaveFocus();
+    expect(within(screen.getByRole('dialog')).getByRole('button', { name: /^First Deploy/ })).toHaveFocus();
+  });
+
+  it('clicking an earned insignia features it and shows it in the header', async () => {
+    respond('get', '/profile/me', 200, { profile: PROFILE });
+    const save = respond('patch', '/profile/me', 200, { profile: { ...PROFILE, featuredIds: [1, 8] } });
+    const { user } = renderRoute(<ProfilePage />);
+    await screen.findByRole('heading', { level: 1, name: 'Vega-7' });
+
+    const collection = screen.getByRole('region', { name: 'Insignia collection' });
+    await user.click(within(collection).getByRole('button', { name: /^Commander/ }));
+
+    expect(save[0]!.body).toEqual({ featuredIds: [1, 8] });
+    expect(await within(collection).findByRole('status')).toHaveTextContent('Commander is now featured.');
   });
 
   it('activating a booster updates the page and the nav', async () => {

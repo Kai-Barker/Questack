@@ -26,6 +26,9 @@ export interface SeedChallenge {
   markingCriteria: string;
   bugLine?: number;
   bugLineContains?: string;
+  // Other lines where fixing the bug also counts (e.g. where a value is
+  // declared, when the bug line is where it's used)
+  altBugLines?: number[];
 }
 
 export interface SeedQuest {
@@ -234,17 +237,40 @@ class FuelReport
 }
 `),
         answerKey:
-          'totalFuel and tanks are both ints, so totalFuel / tanks is integer division and gives 62 before the result is ever stored in the double. Storing it in a double does not bring the .5 back. One value must be a double before dividing, for example (double)totalFuel / tanks, which gives 62.5.',
+          'totalFuel and tanks are both ints, so totalFuel / tanks is integer division and gives 62 before the result is ever stored in the double. Storing it in a double does not bring the .5 back. One value must be a double before dividing: either cast it in the division, for example (double)totalFuel / tanks, or declare totalFuel (or tanks) as a double in the first place. Both give 62.5.',
         markingCriteria:
-          'Must identify the division line and explain that dividing two ints does integer division (losing the .5) before the value reaches the double; should suggest making one side a double first.',
+          'Must explain that dividing two ints does integer division (losing the .5) before the value reaches the double; should suggest a fix that makes the division use a double, either by casting in the division or by declaring one of the values as a double.',
         bugLine: 11,
         bugLineContains: 'double average = totalFuel / tanks;',
+        altBugLines: [7, 8],
       },
       {
-        type: 'decode_transmission',
-        instructions: decodeInstructions('C#', 'declares variables of a few different types (int, double, bool, string)'),
+        type: 'read_and_explain',
+        instructions:
+          'Read SignalDecoder.cs. Explain what each of the three lines prints, and why the last two give such different results.',
+        fileName: 'SignalDecoder.cs',
+        code: code(`
+using System;
+
+class SignalDecoder
+{
+    static void Main()
+    {
+        double reading = 9.87;
+        int rounded = (int)reading;
+        string code = "42";
+        int channel = int.Parse(code);
+
+        Console.WriteLine(rounded);
+        Console.WriteLine(channel + 8);
+        Console.WriteLine(code + 8);
+    }
+}
+`),
+        answerKey:
+          '(int)reading casts the double to an int, which cuts off the decimal part instead of rounding, so rounded is 9 and the first line prints 9. int.Parse(code) turns the text "42" into the number 42, so channel + 8 is arithmetic and prints 50. code is still a string, so code + 8 joins the text "42" and the 8 together and prints 428.',
         markingCriteria:
-          'The pilot must explain in their own words what the pasted code does, including what kind of value each of its main variables holds. Judge against the pasted code itself. Reward genuine understanding; don’t require every detail.',
+          'Must mention: casting 9.87 to int drops the decimal part (prints 9, not 10); int.Parse turns the text "42" into the number 42, so adding 8 prints 50; adding 8 to the string joins text instead and prints 428.',
       },
     ],
   },
@@ -350,10 +376,43 @@ class RefuelBay
         bugLineContains: 'i <= tanks.Length',
       },
       {
-        type: 'decode_transmission',
-        instructions: decodeInstructions('C#', 'uses a loop'),
+        type: 'read_and_explain',
+        instructions:
+          'Read AsteroidScan.cs. Explain what continue and break each do here, and list everything the program prints.',
+        fileName: 'AsteroidScan.cs',
+        code: code(`
+using System;
+
+class AsteroidScan
+{
+    static void Main()
+    {
+        int[] sizes = { 3, 0, 7, 12, 4 };
+        int scanned = 0;
+
+        for (int i = 0; i < sizes.Length; i++)
+        {
+            if (sizes[i] == 0)
+            {
+                continue;
+            }
+            if (sizes[i] > 10)
+            {
+                Console.WriteLine("Giant asteroid! Scan aborted.");
+                break;
+            }
+            scanned++;
+            Console.WriteLine($"Asteroid size {sizes[i]} logged");
+        }
+
+        Console.WriteLine($"Scanned: {scanned}");
+    }
+}
+`),
+        answerKey:
+          'continue skips the rest of the current pass and moves on to the next one, so the size 0 entry is skipped without being logged or counted. break leaves the loop completely, so when the 12 is reached the program prints "Giant asteroid! Scan aborted." and the last entry (4) is never checked. The output is "Asteroid size 3 logged", "Asteroid size 7 logged", "Giant asteroid! Scan aborted." and finally "Scanned: 2".',
         markingCriteria:
-          'The pilot must explain in their own words what the pasted code does overall, including what its loop repeats and when that loop stops. Judge against the pasted code itself. Reward genuine understanding; don’t require every detail.',
+          'Must explain that continue skips to the next pass (the 0 is not logged or counted) and break stops the loop entirely (the 4 is never reached); must give the output: sizes 3 and 7 logged, the abort message, then "Scanned: 2".',
       },
     ],
   },
@@ -442,9 +501,10 @@ class ClearanceCheck
         answerKey:
           'The "hostile" case returns "Granted", so hostile ships get clearance. It should return "Denied" (or the case could be removed so hostile ships fall to the default).',
         markingCriteria:
-          'Must identify that the hostile case returns "Granted" and explain it should deny clearance instead.',
+          'Must identify that the hostile case grants clearance and explain it should be denied instead (by returning "Denied", or by removing the case so it falls to the default).',
         bugLine: 14,
         bugLineContains: 'return "Granted";',
+        altBugLines: [13],
       },
       {
         type: 'read_and_explain',
@@ -545,17 +605,48 @@ class ShieldBoost
 }
 `),
         answerKey:
-          'Boost works out the boosted value (75) and stores it in boosted, but then returns the original shields parameter (50) instead. The calculation is thrown away. It should return boosted.',
+          'Boost works out the boosted value (75) and stores it in boosted, but then returns the original shields parameter (50) instead. The calculation is thrown away. It should return boosted (or store the result back in shields, shields = shields + 25, so that returning shields gives 75).',
         markingCriteria:
-          'Must identify the return statement and explain that the method returns the unchanged parameter instead of the boosted value it calculated; should suggest returning boosted.',
+          'Must explain that the method returns the unchanged parameter instead of the boosted value it calculated; should suggest a fix that returns the boosted value (returning boosted, or storing the result back in shields).',
         bugLine: 8,
         bugLineContains: 'return shields;',
+        altBugLines: [7],
       },
       {
-        type: 'decode_transmission',
-        instructions: decodeInstructions('C#', 'defines and calls its own methods'),
+        type: 'read_and_explain',
+        instructions:
+          'Read LaunchSequence.cs. Explain what void means for these two methods, and list everything the program prints, in order.',
+        fileName: 'LaunchSequence.cs',
+        code: code(`
+using System;
+
+class LaunchSequence
+{
+    static void Countdown(int from)
+    {
+        for (int i = from; i > 0; i--)
+        {
+            Console.WriteLine(i);
+        }
+    }
+
+    static void Launch(string shipName)
+    {
+        Console.WriteLine($"{shipName} preparing to launch");
+        Countdown(3);
+        Console.WriteLine("Liftoff!");
+    }
+
+    static void Main()
+    {
+        Launch("Kestrel");
+    }
+}
+`),
+        answerKey:
+          'void means the method does its job (here, printing) but hands no value back, so neither call is stored in a variable. Main calls Launch with "Kestrel". Launch prints "Kestrel preparing to launch", then calls Countdown(3), which prints 3, 2 and 1 on separate lines. When Countdown finishes, the program carries on in Launch where it left off and prints "Liftoff!".',
         markingCriteria:
-          'The pilot must explain in their own words what the pasted code does overall, including what its methods take in and give back. Judge against the pasted code itself. Reward genuine understanding; don’t require every detail.',
+          'Must explain that void methods return no value; must describe the call order (Main calls Launch, Launch calls Countdown, then carries on after it returns); must give the output in order: "Kestrel preparing to launch", 3, 2, 1, "Liftoff!".',
       },
     ],
   },
@@ -668,11 +759,12 @@ const total = fuelInTank + refuel;
 console.log("Total fuel: " + total);
 `),
         answerKey:
-          'fuelInTank is the string "40", not the number 40. Using + with a string joins text instead of adding, so "40" + 25 becomes "4025". The string needs converting first, for example Number(fuelInTank) + refuel, which gives 65.',
+          'fuelInTank is the string "40", not the number 40. Using + with a string joins text instead of adding, so "40" + 25 becomes "4025". Either store it as a number in the first place (const fuelInTank = 40;) or convert it before adding, for example Number(fuelInTank) + refuel (parseInt or a unary + work too). Both give 65.',
         markingCriteria:
-          'Must identify the line that adds fuelInTank and refuel, and explain that fuelInTank is a string so + joins the text instead of adding; should suggest converting it to a number.',
+          'Must explain that fuelInTank is a string, so + joins the text instead of adding; should suggest a fix that makes it a number, either by storing it as a number where it is declared or by converting it before adding (Number, parseInt, parseFloat or unary + all count).',
         bugLine: 5,
         bugLineContains: 'fuelInTank + refuel',
+        altBugLines: [1],
       },
       {
         type: 'decode_transmission',
@@ -856,11 +948,12 @@ const eta = warpTime(120, 4);
 console.log("ETA: " + eta + " hours");
 `),
         answerKey:
-          'warpTime works out the time (30) and stores it in time, but never returns it. A function without a return statement gives back undefined, so eta is undefined. It should return the result, for example return distance / speed.',
+          'warpTime works out the time (30) and stores it in time, but never returns it. A function without a return statement gives back undefined, so eta is undefined. It should return the result, for example return distance / speed, or add return time; before the closing brace.',
         markingCriteria:
-          'Must identify the line inside warpTime and explain that the value is calculated but never returned, so the call gives undefined; should suggest adding a return.',
+          'Must explain that the value is calculated inside warpTime but never returned, so the call gives undefined; should suggest adding a return.',
         bugLine: 2,
         bugLineContains: 'const time = distance / speed;',
+        altBugLines: [3],
       },
     ],
   },

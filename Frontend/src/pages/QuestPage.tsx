@@ -1,7 +1,7 @@
 import { useCallback, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useParams } from 'react-router';
-import { Group, Panel, type Layout } from 'react-resizable-panels';
+import { Group, Panel } from 'react-resizable-panels';
 import BriefingPanel from '../components/quest/BriefingPanel';
 import CodePanel from '../components/quest/CodePanel';
 import ObjectivePanel from '../components/quest/ObjectivePanel';
@@ -14,42 +14,10 @@ import PanelBox from '../components/ui/Panel';
 import { useApiRequest } from '../hooks/useApiRequest';
 import { useMediaQuery } from '../hooks/useMediaQuery';
 import { useNavSlot } from '../hooks/useNavSlot';
+import { RESIZE_TARGET, usePaneLayout } from '../hooks/usePaneLayout';
 import { useQuestSession } from '../hooks/useQuestSession';
 import { getQuest } from '../services/questService';
 import type { QuestDetail } from '../types/quest';
-
-// The Group re-applies its layout whenever these props change identity, which
-// undid every resize. So they're kept stable: a constant here, and the saved
-// layout read once on mount by usePaneLayout below.
-const RESIZE_TARGET = { coarse: 20, fine: 10 };
-
-// Pane sizes are remembered per browser. Storage can be blocked (private
-// mode), so failures just fall back to the default sizes.
-function usePaneLayout(key: string) {
-  const [defaultLayout] = useState<Layout | undefined>(() => {
-    try {
-      const saved: unknown = JSON.parse(localStorage.getItem(key) ?? 'null');
-      const valid =
-        saved !== null && typeof saved === 'object' && Object.values(saved).every((v) => typeof v === 'number');
-      return valid ? (saved as Layout) : undefined;
-    } catch {
-      return undefined;
-    }
-  });
-
-  const onLayoutChanged = useCallback(
-    (layout: Layout) => {
-      try {
-        localStorage.setItem(key, JSON.stringify(layout));
-      } catch {
-        // Not saved; the default sizes are used next time
-      }
-    },
-    [key],
-  );
-
-  return { defaultLayout, onLayoutChanged };
-}
 
 function QuestScreen({ quest }: { quest: QuestDetail }) {
   const session = useQuestSession(quest);
@@ -82,7 +50,7 @@ function QuestScreen({ quest }: { quest: QuestDetail }) {
       onAnswerChange={(answer) => session.editObjective(index, { answer })}
       onMarkedLineChange={(markedLine) => session.editObjective(index, { markedLine })}
       onRequestHint={session.requestNextHint}
-      onSubmit={session.submitAnswer}
+      onSubmit={() => session.submitAnswer()}
       onAcknowledge={session.acknowledgeBriefing}
       onShowDebrief={() => session.setDebriefOpen(true)}
     />
@@ -113,10 +81,23 @@ function QuestScreen({ quest }: { quest: QuestDetail }) {
     />
   );
 
+  // Pilots may answer from the chat too, whenever the objective they're on
+  // takes a written answer
+  const working = quest.challenges[state.current];
+  const workingProgress = state.objectives[state.current];
+  const canAnswerFromChat =
+    !session.completed &&
+    working !== undefined &&
+    working.challengeType !== 'briefing' &&
+    workingProgress?.status === 'current' &&
+    (working.challengeType !== 'decode_transmission' || workingProgress.decoded);
+
   const commsPanel = (
     <ShipsAiPanel
       messages={state.messages}
       busy={state.busy !== null}
+      waitKind={state.busy}
+      onSubmitAsAnswer={canAnswerFromChat ? (text) => void session.submitAnswer(text) : undefined}
       online={state.online}
       explainAs={state.explainAs}
       onExplainAsChange={session.setExplainAs}

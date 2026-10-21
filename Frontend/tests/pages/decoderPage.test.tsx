@@ -27,12 +27,13 @@ function paste(code: string) {
 }
 
 const conversation = () => screen.getByRole('list', { name: "Ship's AI conversation" });
+const sectorPicker = () => screen.getByRole('button', { name: /^Sector/ });
 
 async function renderDecoder() {
   respond('get', '/dashboard', 200, DASHBOARD);
   const view = renderRoute(<DecoderPage />, { path: '/decoder' });
   // Starts in the first sector the pilot has enlisted in
-  await waitFor(() => expect(screen.getByRole('button', { name: 'C#' })).toHaveAttribute('aria-pressed', 'true'));
+  await waitFor(() => expect(sectorPicker()).toHaveAccessibleName('Sector C#'));
   return view;
 }
 
@@ -62,8 +63,66 @@ describe('DecoderPage', () => {
     await user.click(screen.getByRole('button', { name: 'Submit answer' }));
 
     expect(await screen.findByText('Transmission decoded')).toBeInTheDocument();
-    expect(screen.getByText('Logged towards your Decoder insignia.')).toBeInTheDocument();
+    // Shown under the check and repeated in the popup below
+    expect(screen.getAllByText('Logged towards your Decoder insignia.')).toHaveLength(2);
     expect(checkCalls[0]!.body).toEqual({ proficiency: 'pilot', code: CODE, checkToken: 'signed-token', answer: 'It ends at 1.' });
+
+    // Then a popup says it's finished and offers where to go next
+    const done = screen.getByRole('dialog', { name: 'Transmission understood' });
+    expect(done).toHaveTextContent('Spot on, Pilot.');
+    expect(within(done).getByRole('link', { name: 'Back to Galaxy Map' })).toHaveAttribute('href', '/');
+  });
+
+  // Steps a two-section transmission through to a passed check
+  async function passCheck() {
+    respond('post', '/ai/decoder', 200, { ...DECODED, sections: [DECODED.sections[0]] });
+    respond('post', '/ai/decoder/check', 200, { correct: true, feedback: 'Spot on, Pilot.', counted: false });
+    const view = await renderDecoder();
+    paste(CODE);
+    await view.user.click(screen.getByRole('button', { name: 'Decode' }));
+    await view.user.type(await screen.findByLabelText('Your answer'), 'It ends at 1.');
+    await view.user.click(screen.getByRole('button', { name: 'Submit answer' }));
+    await screen.findByRole('dialog', { name: 'Transmission understood' });
+    return view;
+  }
+
+  it('the finished popup can start a new transmission', async () => {
+    const { user } = await passCheck();
+    expect(screen.getByRole('dialog')).toHaveTextContent("You've decoded this transmission before");
+
+    await user.click(screen.getByRole('button', { name: 'Decode another' }));
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(screen.getByText('Walkthrough')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Decode' })).toBeDisabled();
+  });
+
+  it('the finished popup can be closed to look back over the decode', async () => {
+    const { user } = await passCheck();
+    await user.click(screen.getByRole('button', { name: 'Stay and review' }));
+
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(screen.getByText('Fills the tank with 10.')).toBeInTheDocument();
+  });
+
+  it('picks the sector from a dropdown, and locks it once decoded', async () => {
+    const decodeCalls = respond('post', '/ai/decoder', 200, DECODED);
+    const { user } = await renderDecoder();
+
+    await user.click(sectorPicker());
+    await user.click(screen.getByRole('option', { name: 'JavaScript' }));
+    expect(sectorPicker()).toHaveAccessibleName('Sector JavaScript');
+
+    paste(CODE);
+    await user.click(screen.getByRole('button', { name: 'Decode' }));
+    await screen.findByText('Fills the tank with 10.');
+    expect(decodeCalls[0]!.body).toMatchObject({ languageId: 2 });
+    expect(sectorPicker()).toBeDisabled();
+  });
+
+  it('has text size controls for the code', async () => {
+    const { user } = await renderDecoder();
+    await user.click(screen.getByRole('button', { name: 'Larger code text' }));
+    expect(screen.getByRole('button', { name: 'Smaller code text' })).toBeEnabled();
   });
 
   it('lets the pilot retry a wrong answer, with a guiding question', async () => {

@@ -13,7 +13,7 @@ import Panel from '../components/ui/Panel';
 import { useApiRequest } from '../hooks/useApiRequest';
 import { useAuth } from '../hooks/useAuth';
 import { usePilot } from '../hooks/usePilot';
-import { getMyProfile } from '../services/profileService';
+import { getMyProfile, updateProfile } from '../services/profileService';
 import type { PilotProfile } from '../types/profile';
 
 const pageClasses = 'mx-auto grid max-w-[90rem] gap-6 px-4 py-6 sm:px-6 lg:grid-cols-[17rem_minmax(0,1fr)]';
@@ -52,6 +52,14 @@ export default function ProfilePage() {
       if (callsignChanged) void refreshUser();
     },
     [replace, refreshUser],
+  );
+
+  // Clicking an insignia features it straight from the collection
+  const handleSetFeatured = useCallback(
+    async (featuredIds: number[]) => {
+      replace(await updateProfile({ featuredIds }));
+    },
+    [replace],
   );
 
   // The nav and Galaxy Map show the running booster, so they refresh too
@@ -102,6 +110,7 @@ export default function ProfilePage() {
           insignia={profile.insignia}
           featuredIds={profile.featuredIds}
           onChooseFeatured={() => setEditing('featured')}
+          onSetFeatured={handleSetFeatured}
         />
       </div>
 

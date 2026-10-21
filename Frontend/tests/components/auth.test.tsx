@@ -173,6 +173,8 @@ describe('BootGate', () => {
             { path: 'quest/:id', element: <p>Quest page</p> },
             { path: 'login', element: <p>Login page</p> },
             { path: 'enlist', element: <p>Enlist page</p> },
+            { path: 'terms', element: <p>Terms page</p> },
+            { path: 'privacy', element: <p>Privacy page</p> },
           ],
         },
       ],
@@ -209,5 +211,17 @@ describe('BootGate', () => {
     await user.click(screen.getByRole('button', { name: 'New recruit' }));
     expect(await screen.findByText('Enlist page')).toBeInTheDocument();
     expect(currentLocation()).toBe('/enlist');
+  });
+
+  // The enlist form opens these in a new tab, which starts a fresh load
+  it.each([
+    ['/terms', 'Terms page'],
+    ['/privacy', 'Privacy page'],
+  ])('shows %s straight away, even to a signed-out visitor mid-splash', (at, text) => {
+    boot('loading');
+    renderGate(at, 'anonymous');
+
+    expect(screen.getByText(text)).toBeInTheDocument();
+    expect(screen.queryByRole('progressbar')).not.toBeInTheDocument();
   });
 });

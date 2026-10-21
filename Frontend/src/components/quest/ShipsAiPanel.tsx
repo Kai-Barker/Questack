@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
+import type { WaitKind } from '../../config/loadingLines';
+import { useLoadingLine } from '../../hooks/useLoadingLine';
 import type { CommsMessage, CommsTone } from '../../hooks/useQuestSession';
 import type { ProficiencyLevel } from '../../types/pilot';
 import ChamferFrame from '../ui/ChamferFrame';
-import { ArrowRightIcon, DiamondIcon } from '../ui/icons';
+import { ArrowRightIcon, CheckIcon, DiamondIcon } from '../ui/icons';
 
 const levels: ProficiencyLevel[] = ['cadet', 'pilot', 'commander'];
 
@@ -27,16 +29,31 @@ const labelStyles: Partial<Record<CommsTone, string>> = {
 interface ShipsAiPanelProps {
   messages: CommsMessage[];
   busy: boolean;
+  waitKind?: WaitKind | null; // what the wait is for, so it opens with the right line (default: chat)
   online: boolean;
   explainAs: ProficiencyLevel;
   onExplainAsChange: (level: ProficiencyLevel) => void;
   onSend: (text: string) => void;
+  // Set while the current objective can be answered: offers to submit the
+  // pilot's latest message as their answer, for pilots who answer in the chat
+  onSubmitAsAnswer?: (text: string) => void;
 }
 
 // Bottom-right pane: the Ship's AI mentor chat
-export default function ShipsAiPanel({ messages, busy, online, explainAs, onExplainAsChange, onSend }: ShipsAiPanelProps) {
+export default function ShipsAiPanel({
+  messages,
+  busy,
+  waitKind,
+  online,
+  explainAs,
+  onExplainAsChange,
+  onSend,
+  onSubmitAsAnswer,
+}: ShipsAiPanelProps) {
   const [draft, setDraft] = useState('');
   const logRef = useRef<HTMLOListElement>(null);
+  const loadingLine = useLoadingLine(busy ? (waitKind ?? 'chat') : null);
+  const lastPilotMessage = messages.findLast((m) => m.from === 'pilot' && m.tone === 'chat');
 
   // Keep the newest message in view
   useEffect(() => {
@@ -106,7 +123,7 @@ export default function ShipsAiPanel({ messages, busy, online, explainAs, onExpl
         className="relative min-h-0 flex-1 space-y-3 overflow-y-auto px-5 py-2"
       >
         {messages.map((message) => (
-          <li key={message.id} className={message.from === 'pilot' ? 'flex justify-end' : 'flex'}>
+          <li key={message.id} className={message.from === 'pilot' ? 'flex flex-col items-end' : 'flex'}>
             <div
               className={`max-w-[85%] rounded-md px-4 py-2.5 text-sm leading-relaxed whitespace-pre-line ${
                 message.from === 'pilot' ? 'bg-[#1c2a47] text-slate-100' : `bg-panel-raised text-slate-100 ${toneStyles[message.tone]}`
@@ -124,12 +141,36 @@ export default function ShipsAiPanel({ messages, busy, online, explainAs, onExpl
               )}
               {message.text}
             </div>
+            {message === lastPilotMessage && onSubmitAsAnswer && !busy && (
+              // Solid, like the send button, so pilots who answer here can't miss it
+              <div className="mt-2 flex items-center gap-3">
+                <span className="text-xs text-slate-300">Was this your answer?</span>
+                <button
+                  type="button"
+                  onClick={() => onSubmitAsAnswer(message.text)}
+                  className="group focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+                >
+                  <ChamferFrame
+                    as="span"
+                    size="sm"
+                    grow="sm"
+                    borderClassName="bg-accent group-hover:bg-accent-soft"
+                    innerClassName="flex items-center gap-2 bg-accent px-4 py-1.5 font-display text-xs font-semibold tracking-[0.15em] text-space-950 uppercase group-hover:bg-accent-soft"
+                  >
+                    <CheckIcon />
+                    Submit as answer
+                  </ChamferFrame>
+                </button>
+              </div>
+            )}
           </li>
         ))}
         {busy && (
           <li className="flex">
             <p className="rounded-md bg-panel-raised px-4 py-2.5 font-display text-xs tracking-[0.2em] text-accent uppercase motion-safe:animate-pulse">
-              Transmitting…
+              {/* The line changes every few seconds; screen readers get one steady status instead */}
+              <span aria-hidden="true">{loadingLine}</span>
+              <span className="sr-only">The Ship's AI is working on it</span>
             </p>
           </li>
         )}
@@ -144,7 +185,9 @@ export default function ShipsAiPanel({ messages, busy, online, explainAs, onExpl
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
           maxLength={2000}
-          placeholder="Ask the Ship's AI for guidance…"
+          placeholder={
+            onSubmitAsAnswer ? "Ask the Ship's AI for guidance, or write your answer and submit it…" : "Ask the Ship's AI for guidance…"
+          }
           className="min-w-0 flex-1 rounded-md border border-line bg-space-950 px-4 py-2.5 text-sm text-slate-100 placeholder:text-muted focus:border-accent/60 focus:outline-none"
         />
         <button

@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { newObjective, newQuestDraft, toDraft, toInput, type ObjectiveDraft, type QuestDraft } from '../../../src/utils/adminQuest';
 import { accessCodeChecks, callsignError, emailError, passwordError, withoutField } from '../../../src/utils/authRules';
 import { capitalise, errorMessage, formatNumber, initials } from '../../../src/utils/format';
 import { percent, REPLAY_XP_SHARE, sectorStatus } from '../../../src/utils/progress';
@@ -218,5 +219,27 @@ describe('toRequestFailure', () => {
       message: 'Could not reach Questack command. Check your connection and try again.',
       fields: {},
     });
+  });
+});
+
+describe('adminQuest: other accepted bug lines', () => {
+  const draft = (objective: Partial<ObjectiveDraft>): QuestDraft => ({
+    ...newQuestDraft(1),
+    objectives: [{ ...newObjective('bug_hunt'), bugLine: '5', ...objective }],
+  });
+
+  it('sends the lines typed with commas or spaces as numbers', () => {
+    expect(toInput(draft({ altBugLines: '1, 7  9' })).objectives[0]!.altBugLines).toEqual([1, 7, 9]);
+    expect(toInput(draft({ altBugLines: '' })).objectives[0]!.altBugLines).toEqual([]);
+  });
+
+  it('only sends them for bug hunts', () => {
+    expect(toInput(draft({ type: 'read_and_explain', altBugLines: '1' })).objectives[0]!.altBugLines).toEqual([]);
+  });
+
+  it('shows saved lines as "1, 7" in the editor', () => {
+    const saved = toInput(draft({ altBugLines: '1,7' }));
+    const quest = { ...saved, questId: 9, displayOrder: 1, objectives: saved.objectives.map((o) => ({ ...o, challengeId: 90 })) };
+    expect(toDraft(quest).objectives[0]!.altBugLines).toBe('1, 7');
   });
 });

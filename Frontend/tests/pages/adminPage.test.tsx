@@ -167,6 +167,7 @@ const LOOP_QUEST: AdminQuest = {
       answerKey: 'SECRET ANSWER KEY',
       markingCriteria: 'Mentions the condition.',
       bugLine: null,
+      altBugLines: [],
     },
   ],
 };

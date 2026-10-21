@@ -21,6 +21,7 @@ export interface QuestLayout {
   positions: Map<number, NodePosition>;
   edges: QuestEdge[];
   order: SectorQuest[]; // column by column, top to bottom (also used by the list view)
+  columnCount: number; // the longest prerequisite chain, which sets how wide the map must be
 }
 
 const X_MIN = 8;
@@ -73,5 +74,5 @@ export function layoutQuests(quests: SectorQuest[]): QuestLayout {
     quest.prerequisiteIds.filter((id) => byId.has(id)).map((from) => ({ from, to: quest.questId })),
   );
 
-  return { positions, edges, order };
+  return { positions, edges, order, columnCount: columns.length };
 }

@@ -93,11 +93,23 @@ describe('models and settings', () => {
     expect(vi.mocked(generate).mock.calls.map((c) => c[0])).toEqual(['flashLite', 'flashLite', 'flash', 'flash']);
   });
 
-  it('asks for JSON when marking, at a low temperature', async () => {
+  it('asks for JSON when marking, at temperature 0 so the same answer gets the same mark', async () => {
     geminiSays(json({ correct: true, feedback: 'Yes.' }));
     await evaluateAnswer(explain, 'cadet', 'answer');
 
-    expect(vi.mocked(generate).mock.calls[0]![2]).toMatchObject({ responseMimeType: 'application/json', temperature: 0.2 });
+    expect(vi.mocked(generate).mock.calls[0]![2]).toMatchObject({ responseMimeType: 'application/json', temperature: 0 });
+  });
+
+  it('takes prompt tags the model copied out of its reply', async () => {
+    geminiSays('<ai_turn> Pilot, stellar execution. </ai_turn>');
+    expect(await writeDebrief('First Contact', 'C#', 'cadet', [{ challengeType: 'bug_hunt', attempts: 1, hintsUsed: 0 }])).toBe(
+      'Pilot, stellar execution.',
+    );
+  });
+
+  it('takes them out of every field of a JSON reply too', async () => {
+    geminiSays(json({ correct: false, feedback: '<ai_turn>Close.</ai_turn>', guidingQuestion: 'What is <pilot_input>stored</pilot_input>?' }));
+    expect(await evaluateAnswer(explain, 'pilot', 'x')).toEqual({ correct: false, feedback: 'Close.', guidingQuestion: 'What is stored?' });
   });
 
   it('throws AiReplyError for an empty reply', async () => {
@@ -152,6 +164,26 @@ describe('evaluateAnswer', () => {
 
     expect(result.correct).toBe(false);
     expect(result.feedback).toBe("Your explanation is on target, Pilot, but line 1 isn't where the bug lives.");
+  });
+
+  describe('a bug that can be fixed on more than one line', () => {
+    // Line 1 declares total, so fixing it there is also accepted
+    const twoPlaces: ChallengeContent = { ...bugHunt, altBugLines: [1] };
+
+    it('passes when the pilot marks the other accepted line', async () => {
+      geminiSays(json({ correct: true, feedback: 'A fix that works.' }));
+      expect(await evaluateAnswer(twoPlaces, 'pilot', 'declare it differently', 1)).toMatchObject({ correct: true });
+    });
+
+    it('still fails on a line that isn’t accepted', async () => {
+      geminiSays(json({ correct: true, feedback: 'Found it.' }));
+      expect((await evaluateAnswer(twoPlaces, 'pilot', '=+ assigns', 2)).correct).toBe(false);
+    });
+
+    it('keeps the other accepted line out of replies too', async () => {
+      geminiSays('Have a look at line 1.', 'Look at where total starts.');
+      expect(await getHint(twoPlaces, 'cadet', 1)).toBe('Look at where total starts.');
+    });
   });
 
   it('redacts the bug’s line from failing feedback without re-marking', async () => {

@@ -13,6 +13,7 @@ import {
   evaluatePrompt,
   hintPrompt,
   systemInstruction,
+  withoutPromptTags,
   type ChatMessage,
   type DebriefObjective,
 } from '../../prompts/shipsAi.js';
@@ -64,9 +65,19 @@ export class AiReplyError extends Error {
 async function askForText(model: ModelName, contents: string, config: GenerateContentConfig): Promise<string> {
   const { response, modelUsed } = await generate(model, contents, config);
   recordUsage(modelUsed, response);
-  const text = response.text?.trim();
+  const text = withoutPromptTags(response.text ?? '');
   if (!text) throw new AiReplyError();
   return text;
+}
+
+// Every string in a JSON reply, cleaned the same way as a text reply
+function cleanStrings<T>(value: T): T {
+  if (typeof value === 'string') return withoutPromptTags(value) as T;
+  if (Array.isArray(value)) return value.map(cleanStrings) as T;
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(Object.entries(value).map(([k, v]) => [k, cleanStrings(v)])) as T;
+  }
+  return value;
 }
 
 // JSON mode, validated with zod. One retry if the reply doesn't fit the schema.
@@ -80,7 +91,7 @@ async function askForJson<T>(
     const { response, modelUsed } = await generate(model, contents, { ...config, responseMimeType: 'application/json' });
     recordUsage(modelUsed, response);
     try {
-      const parsed = schema.safeParse(JSON.parse(response.text ?? ''));
+      const parsed = schema.safeParse(cleanStrings(JSON.parse(response.text ?? '')));
       if (parsed.success) return parsed.data;
     } catch {
       // Not valid JSON: fall through and retry
@@ -95,11 +106,18 @@ async function askForJson<T>(
 // still work it out from the code, so replies are checked here as a backstop:
 // one retry, then the mention is replaced.
 // ---------------------------------------------------------------------
+// The bug line and any other line where a fix also counts
+function bugLines(challenge: ChallengeContent): number[] {
+  if (challenge.challengeType !== 'bug_hunt' || challenge.bugLine === undefined) return [];
+  return [challenge.bugLine, ...(challenge.altBugLines ?? [])];
+}
+
 function bugLinePattern(challenge: ChallengeContent): RegExp | null {
-  if (challenge.challengeType !== 'bug_hunt' || challenge.bugLine === undefined) return null;
+  const lines = bugLines(challenge);
+  if (lines.length === 0) return null;
   // Matches "line 11", "Line #11", "lines 10 and 11", "lines 10-11", "L11"
   // String.raw keeps the regex backslashes (a normal template string turns \b into a backspace)
-  const line = challenge.bugLine;
+  const line = `(?:${lines.join('|')})`;
   return new RegExp(String.raw`\b(?:lines?\s*#?\s*(?:\d+\s*(?:-|–|to|and|,)\s*)*${line}|L${line})\b`, 'gi');
 }
 
@@ -174,13 +192,15 @@ export async function evaluateAnswer(
   const result = await askForJson(
     'flash',
     evaluatePrompt(challenge, answer, selectedLine, pastedCode),
-    { systemInstruction: systemInstruction(proficiency, challenge.language), temperature: 0.2 },
+    // Temperature 0: marking should be as repeatable as the model allows
+    { systemInstruction: systemInstruction(proficiency, challenge.language), temperature: 0 },
     evaluationSchema,
   );
 
-  // Bug hunts: the marked line is checked here, not left to the model
-  const wrongLine =
-    challenge.challengeType === 'bug_hunt' && challenge.bugLine !== undefined && selectedLine !== challenge.bugLine;
+  // Bug hunts: the marked line is checked here, not left to the model. Any
+  // line where a fix would work counts (see code_challenge_details.alt_bug_lines).
+  const lines = bugLines(challenge);
+  const wrongLine = lines.length > 0 && (selectedLine === undefined || !lines.includes(selectedLine));
   const correct = result.correct && !wrongLine;
 
   // The model liked the explanation but the line is wrong: its feedback would

@@ -17,4 +17,5 @@ export interface ChallengeContent {
   answerKey?: string;
   markingCriteria: string;
   bugLine?: number; // bug_hunt only
+  altBugLines?: number[]; // bug_hunt only: other lines where a fix also counts
 }

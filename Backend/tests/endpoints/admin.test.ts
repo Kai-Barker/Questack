@@ -254,6 +254,7 @@ describe('quest editor reads', () => {
           answerKey: 'The key.',
           markingCriteria: 'Criteria.',
           bugLine: 1,
+          altBugLines: [],
         },
       ],
     });

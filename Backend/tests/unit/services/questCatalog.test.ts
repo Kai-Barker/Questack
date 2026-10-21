@@ -133,6 +133,19 @@ describe('toChallengeContent', () => {
     });
   });
 
+  it('passes on the other lines a bug hunt accepts, ignoring anything that isn’t a line number', async () => {
+    vi.mocked(questModel.loadCatalogRows).mockResolvedValue({
+      ...CATALOG_ROWS,
+      challenges: CATALOG_ROWS.challenges.map((c) => (c.challenge_id === 102 ? { ...c, alt_bug_lines: '1, 2,x,0' } : c)),
+    } as never);
+    const catalog = await getCatalog();
+    const { quest, challenge } = catalog.challengeById.get(102)!;
+
+    expect(challenge.altBugLines).toEqual([1, 2]);
+    expect(toChallengeContent(catalog.sectorById.get(1), quest, challenge).altBugLines).toEqual([1, 2]);
+    expect(catalog.challengeById.get(101)!.challenge.altBugLines).toEqual([]);
+  });
+
   it('calls the language "code" when the sector is missing', async () => {
     const catalog = await getCatalog();
     const { quest, challenge } = catalog.challengeById.get(101)!;

@@ -29,6 +29,7 @@ export interface ObjectiveInput {
   answerKey?: string | null;
   markingCriteria: string;
   bugLine?: number | null;
+  altBugLines?: number[] | null; // other lines where a fix also counts
 }
 
 export interface QuestInput extends QuestFields {
@@ -71,6 +72,11 @@ export function normaliseObjective(o: ObjectiveInput): ObjectiveFields {
     answerKey: code ? blankToNull(o.answerKey) : null,
     markingCriteria: o.type === 'briefing' ? '' : o.markingCriteria,
     bugLine: o.type === 'bug_hunt' ? (o.bugLine ?? null) : null,
+    // Sorted, without repeats or the bug line itself
+    altBugLines:
+      o.type === 'bug_hunt'
+        ? [...new Set(o.altBugLines ?? [])].filter((line) => line !== o.bugLine).sort((a, b) => a - b)
+        : [],
   };
 }
 
@@ -102,6 +108,8 @@ export function contentProblems(status: QuestFields['status'], objectives: Objec
       const lines = o.codeSnippet?.split('\n').length ?? 0;
       if (o.bugLine === null) fields[key('bugLine')] = 'Enter the line the bug is on.';
       else if (o.bugLine > lines) fields[key('bugLine')] = `The code only has ${lines} line${lines === 1 ? '' : 's'}.`;
+      const pastEnd = o.altBugLines.find((line) => line > lines);
+      if (pastEnd !== undefined) fields[key('altBugLines')] = `The code only has ${lines} line${lines === 1 ? '' : 's'}.`;
     }
     if (o.answerKey && mentionsLineNumber(o.answerKey)) {
       fields[key('answerKey')] = 'Keep line numbers out of the answer key: the Ship’s AI could repeat them.';
@@ -281,6 +289,7 @@ export async function saveQuest(adminId: number, questId: number | null, input: 
         answerKey: o.answerKey,
         markingCriteria: o.markingCriteria,
         bugLine: o.bugLine,
+        altBugLines: o.altBugLines,
       })),
     };
   } catch (err) {

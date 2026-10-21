@@ -6,11 +6,16 @@
 // progress is kept. An objective that's been removed from the file is
 // deleted (along with any answers to it).
 //
-// Re-seeding overwrites any changes made to these quests in the admin quest
-// editor. Quests created in the editor (ids from 1000) are never touched.
+// Re-seeding overwrites changes made to these quests' own content in the
+// admin quest editor, but keeps what was added around them: objectives added
+// in the editor or by the curriculum importer (e.g. briefings) stay, in their
+// place, and so do extra prerequisites. Quests created in the editor (ids
+// from 1000) are never touched.
 import 'dotenv/config';
 import mysql, { type RowDataPacket } from 'mysql2/promise';
 import { dbConnectionOptions } from '../src/config/db.js';
+import { formatLineList } from '../src/utils/lineList.js';
+import { objectiveProblems } from './seeds/checks.js';
 import { boosters, quests, type SeedQuest } from './seeds/questContent.js';
 
 const challengeId = (questId: number, order: number) => questId * 100 + order;
@@ -27,21 +32,7 @@ function check(quest: SeedQuest) {
   // 1000 and up belong to quests made in the admin quest editor (migration 004)
   if (quest.questId < 1 || quest.questId >= 1000) problems.push('questId must be 1-999');
 
-  quest.challenges.forEach((c, i) => {
-    const label = `objective ${i + 1}`;
-    if ((c.type === 'read_and_explain' || c.type === 'bug_hunt') && (!c.code || !c.fileName || !c.answerKey)) {
-      problems.push(`${label} needs code, a file name and an answer key`);
-    }
-    if (c.type === 'bug_hunt') {
-      const line = c.bugLine === undefined ? undefined : c.code?.split('\n')[c.bugLine - 1];
-      if (!line || !c.bugLineContains || !line.includes(c.bugLineContains)) {
-        problems.push(`${label}: bugLine ${c.bugLine} doesn't contain "${c.bugLineContains}" (it's "${line?.trim()}")`);
-      }
-    }
-    if (/\blines?\s*\d/i.test(`${c.answerKey ?? ''} ${c.markingCriteria}`)) {
-      problems.push(`${label}: answer key or marking criteria mentions a line number`);
-    }
-  });
+  quest.challenges.forEach((c, i) => problems.push(...objectiveProblems(c, `objective ${i + 1}`)));
   if (problems.length > 0) throw new Error(`Quest ${quest.questId} (${quest.title}): ${problems.join('; ')}`);
 }
 
@@ -93,35 +84,49 @@ try {
 
   // Prerequisites and objectives, once every quest exists
   for (const q of quests) {
-    await connection.execute('DELETE FROM quest_prerequisites WHERE quest_id = ?', [q.questId]);
+    // Added, never removed: the curriculum importer chains these quests
+    // through newer ones (e.g. Loops also needs Conditionals)
     for (const prerequisite of q.prerequisites) {
-      await connection.execute('INSERT INTO quest_prerequisites (quest_id, prerequisite_quest_id) VALUES (?, ?)', [
+      await connection.execute('INSERT IGNORE INTO quest_prerequisites (quest_id, prerequisite_quest_id) VALUES (?, ?)', [
         q.questId,
         prerequisite,
       ]);
     }
 
+    // Only this file's own ids (questId * 100 + order) are cleaned up, so
+    // objectives added in the editor or by the importer are kept
     const keep = q.challenges.map((_, i) => challengeId(q.questId, i + 1));
     await connection.execute(
-      `DELETE FROM challenges WHERE quest_id = ? AND challenge_id NOT IN (${keep.map(() => '?').join(', ')})`,
-      [q.questId, ...keep],
+      `DELETE FROM challenges WHERE quest_id = ? AND challenge_id BETWEEN ? AND ?
+         AND challenge_id NOT IN (${keep.map(() => '?').join(', ')})`,
+      [q.questId, challengeId(q.questId, 1), challengeId(q.questId, 99), ...keep],
     );
 
     for (const [i, c] of q.challenges.entries()) {
       const id = challengeId(q.questId, i + 1);
+      // An existing objective keeps its place, so a briefing put in front of it stays first
       await connection.execute(
         `INSERT INTO challenges (challenge_id, quest_id, challenge_order, challenge_type, instructions)
          VALUES (?, ?, ?, ?, ?)
-         ON DUPLICATE KEY UPDATE challenge_order = VALUES(challenge_order),
-           challenge_type = VALUES(challenge_type), instructions = VALUES(instructions)`,
+         ON DUPLICATE KEY UPDATE challenge_type = VALUES(challenge_type), instructions = VALUES(instructions)`,
         [id, q.questId, i + 1, c.type, c.instructions],
       );
       await connection.execute(
-        `INSERT INTO code_challenge_details (challenge_id, file_name, code_snippet, answer_key, marking_criteria, bug_line)
-         VALUES (?, ?, ?, ?, ?, ?)
+        `INSERT INTO code_challenge_details
+           (challenge_id, file_name, code_snippet, answer_key, marking_criteria, bug_line, alt_bug_lines)
+         VALUES (?, ?, ?, ?, ?, ?, ?)
          ON DUPLICATE KEY UPDATE file_name = VALUES(file_name), code_snippet = VALUES(code_snippet),
-           answer_key = VALUES(answer_key), marking_criteria = VALUES(marking_criteria), bug_line = VALUES(bug_line)`,
-        [id, c.fileName ?? null, c.code ?? null, c.answerKey ?? null, c.markingCriteria, c.bugLine ?? null],
+           answer_key = VALUES(answer_key), marking_criteria = VALUES(marking_criteria), bug_line = VALUES(bug_line),
+           alt_bug_lines = VALUES(alt_bug_lines)`,
+        [
+          id,
+          c.fileName ?? null,
+          c.code ?? null,
+          c.answerKey ?? null,
+          c.markingCriteria,
+          c.bugLine ?? null,
+          formatLineList(c.altBugLines ?? []),
+        ],
       );
     }
   }

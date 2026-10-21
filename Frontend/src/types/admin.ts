@@ -48,6 +48,7 @@ export interface AdminObjective {
   answerKey: string | null;
   markingCriteria: string;
   bugLine: number | null;
+  altBugLines: number[]; // other lines where fixing the bug also counts
 }
 
 export interface AdminQuest {

@@ -15,6 +15,7 @@ export interface ObjectiveDraft {
   answerKey: string;
   markingCriteria: string;
   bugLine: string;
+  altBugLines: string; // as typed, e.g. "4, 7"
 }
 
 export interface QuestDraft {
@@ -63,6 +64,7 @@ export function newObjective(type: EditableChallengeType): ObjectiveDraft {
     answerKey: '',
     markingCriteria: '',
     bugLine: '',
+    altBugLines: '',
   };
 }
 
@@ -104,6 +106,7 @@ export function toDraft(quest: AdminQuest): QuestDraft {
       answerKey: o.answerKey ?? '',
       markingCriteria: o.markingCriteria,
       bugLine: o.bugLine === null ? '' : String(o.bugLine),
+      altBugLines: o.altBugLines.join(', '),
     })),
   };
 }
@@ -111,6 +114,8 @@ export function toDraft(quest: AdminQuest): QuestDraft {
 // '' becomes null; anything else is sent as typed, so the backend can say
 // what's wrong with it (NaN is sent as null, which it reports as missing)
 const toNumber = (text: string) => (text.trim() === '' ? null : Number(text));
+// "4, 7" or "4 7" becomes [4, 7]
+const toNumbers = (text: string) => text.split(/[\s,]+/).filter(Boolean).map(Number);
 
 export function toInput(draft: QuestDraft): AdminQuestInput {
   return {
@@ -134,6 +139,7 @@ export function toInput(draft: QuestDraft): AdminQuestInput {
         answerKey: code ? o.answerKey || null : null,
         markingCriteria: o.type === 'briefing' ? '' : o.markingCriteria,
         bugLine: o.type === 'bug_hunt' ? toNumber(o.bugLine) : null,
+        altBugLines: o.type === 'bug_hunt' ? toNumbers(o.altBugLines) : [],
       };
     }),
   };

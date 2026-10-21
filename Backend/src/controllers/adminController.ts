@@ -42,11 +42,18 @@ const objective = z.strictObject({
   // Briefings have none, so whether it's required is checked by adminQuestService
   markingCriteria: z.string().trim().max(5000, 'Keep this to 5,000 characters or fewer.'),
   bugLine: z.number('Enter a line number.').int('Enter a whole line number.').min(1, 'Lines start at 1.').max(5000).nullable().optional(),
+  // Other lines where fixing the bug also counts, e.g. where a value is declared
+  altBugLines: z
+    .array(z.number('Use line numbers, separated by commas.').int('Use whole line numbers.').min(1, 'Lines start at 1.').max(5000))
+    .max(10, 'List up to 10 lines.')
+    .nullable()
+    .optional(),
 });
 
 // strictObject rejects any other field, so a request can't set things like
-// created_by, reward_id or a quest id
-const questBody = z.strictObject({
+// created_by, reward_id or a quest id. The curriculum importer
+// (database/importCurriculum.ts) checks its quests against this too.
+export const questBody = z.strictObject({
   languageId: id,
   title: text(150, 'Give the quest a title.'),
   concept: text(100, 'Name the concept this quest teaches.'),

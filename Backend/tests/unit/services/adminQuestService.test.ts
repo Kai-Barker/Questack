@@ -66,6 +66,7 @@ describe('normaliseObjective', () => {
       answerKey: null,
       markingCriteria: 'm',
       bugLine: null,
+      altBugLines: [],
     });
   });
 
@@ -77,6 +78,12 @@ describe('normaliseObjective', () => {
       markingCriteria: 'm',
     });
     expect(o.codeSnippet).toBe('if (x)\n{\n    y();\n}');
+  });
+
+  it('sorts a bug hunt’s other accepted lines, without repeats or the bug line itself', () => {
+    const o = normaliseObjective({ type: 'bug_hunt', instructions: 'i', markingCriteria: 'm', bugLine: 3, altBugLines: [7, 3, 1, 7] });
+    expect(o.altBugLines).toEqual([1, 7]);
+    expect(normaliseObjective({ type: 'read_and_explain', instructions: 'i', markingCriteria: 'm', altBugLines: [2] }).altBugLines).toEqual([]);
   });
 
   it('drops a bug line from anything but a bug hunt', () => {
@@ -102,6 +109,7 @@ describe('normaliseObjective', () => {
       answerKey: null,
       markingCriteria: '',
       bugLine: null,
+      altBugLines: [],
     });
   });
 });
@@ -131,6 +139,13 @@ describe('contentProblems', () => {
     });
     expect(contentProblems('draft', [{ ...bugHunt, bugLine: 3 }])).toEqual({
       'objectives.0.bugLine': 'The code only has 2 lines.',
+    });
+  });
+
+  it('needs the other accepted lines inside the code too', () => {
+    expect(contentProblems('draft', [{ ...bugHunt, altBugLines: [1] }])).toEqual({});
+    expect(contentProblems('draft', [{ ...bugHunt, altBugLines: [1, 5] }])).toEqual({
+      'objectives.0.altBugLines': 'The code only has 2 lines.',
     });
   });
 

@@ -133,16 +133,76 @@ describe('SectorProgressPanel', () => {
 });
 
 describe('InsigniaCollection and AllInsigniaDialog', () => {
-  it('lists earned insignia first with their status', () => {
-    render(<InsigniaCollection insignia={PROFILE.insignia} featuredIds={[1]} onChooseFeatured={() => {}} />);
+  const noSave = async () => {};
 
-    expect(screen.getByText('2 of 3 earned · choose up to 3 to feature')).toBeInTheDocument();
+  // A fourth earned insignia, so three can be featured with one left over
+  const EARNED_FOUR = [
+    ...PROFILE.insignia,
+    { rewardId: 9, code: 'streak-5', name: 'Hot Streak', description: 'Five days in a row.', earned: true },
+    { rewardId: 10, code: 'decoder', name: 'Decoder', description: 'Decode a transmission.', earned: true },
+  ];
+
+  it('lists earned insignia first with their status', () => {
+    render(<InsigniaCollection insignia={PROFILE.insignia} featuredIds={[1]} onChooseFeatured={() => {}} onSetFeatured={noSave} />);
+
+    expect(screen.getByText('2 of 3 earned · click an insignia to feature it (up to 3)')).toBeInTheDocument();
     const items = within(screen.getByRole('region', { name: 'Insignia collection' })).getAllByRole('listitem').map((li) => li.textContent);
     expect(items).toEqual(['First Deploy Featured', 'CommanderEarned', 'Bug HunterLocked']);
   });
 
+  it('features an earned insignia straight away when there’s a free slot', async () => {
+    const onSetFeatured = vi.fn(async () => {});
+    render(<InsigniaCollection insignia={PROFILE.insignia} featuredIds={[1]} onChooseFeatured={() => {}} onSetFeatured={onSetFeatured} />);
+
+    await userEvent.click(screen.getByRole('button', { name: /^Commander/ }));
+    expect(onSetFeatured).toHaveBeenCalledWith([1, 8]);
+    expect(await screen.findByRole('status')).toHaveTextContent('Commander is now featured.');
+  });
+
+  it('asks which one to replace when all three slots are taken', async () => {
+    const onSetFeatured = vi.fn(async () => {});
+    render(<InsigniaCollection insignia={EARNED_FOUR} featuredIds={[1, 8, 9]} onChooseFeatured={() => {}} onSetFeatured={onSetFeatured} />);
+
+    await userEvent.click(screen.getByRole('button', { name: /^Decoder/ }));
+    expect(onSetFeatured).not.toHaveBeenCalled();
+    expect(screen.getByText(/All three slots are taken/)).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Replace Commander' }));
+    expect(onSetFeatured).toHaveBeenCalledWith([1, 10, 9]); // same slot
+    expect(await screen.findByRole('status')).toHaveTextContent('Decoder is now featured.');
+  });
+
+  it('offers to remove an insignia that’s already featured', async () => {
+    const onSetFeatured = vi.fn(async () => {});
+    render(<InsigniaCollection insignia={PROFILE.insignia} featuredIds={[1, 8]} onChooseFeatured={() => {}} onSetFeatured={onSetFeatured} />);
+
+    await userEvent.click(screen.getByRole('button', { name: /^First Deploy/ }));
+    expect(screen.getByText(/is featured in slot/)).toHaveTextContent('First Deploy is featured in slot 1.');
+    await userEvent.click(screen.getByRole('button', { name: 'Remove from featured' }));
+    expect(onSetFeatured).toHaveBeenCalledWith([8]);
+  });
+
+  it('says how to earn an insignia that isn’t earned yet, and features nothing', async () => {
+    const onSetFeatured = vi.fn(async () => {});
+    render(<InsigniaCollection insignia={PROFILE.insignia} featuredIds={[]} onChooseFeatured={() => {}} onSetFeatured={onSetFeatured} />);
+
+    await userEvent.click(screen.getByRole('button', { name: /^Bug Hunter/ }));
+    expect(screen.getByRole('region', { name: 'Bug Hunter insignia' })).toHaveTextContent("Bug Hunter isn't earned yet. Squash 10 bugs.");
+    expect(onSetFeatured).not.toHaveBeenCalled();
+  });
+
+  it('shows why featuring failed', async () => {
+    const onSetFeatured = vi.fn(async () => {
+      throw new Error('Only earned insignia can be featured.');
+    });
+    render(<InsigniaCollection insignia={PROFILE.insignia} featuredIds={[]} onChooseFeatured={() => {}} onSetFeatured={onSetFeatured} />);
+
+    await userEvent.click(screen.getByRole('button', { name: /^Commander/ }));
+    expect(await screen.findByRole('status')).toHaveTextContent('Only earned insignia can be featured.');
+  });
+
   it('opens the full collection, grouped, and closes it', async () => {
-    render(<InsigniaCollection insignia={PROFILE.insignia} featuredIds={[1]} onChooseFeatured={() => {}} />);
+    render(<InsigniaCollection insignia={PROFILE.insignia} featuredIds={[1]} onChooseFeatured={() => {}} onSetFeatured={noSave} />);
     await userEvent.click(screen.getByRole('button', { name: /View all/ }));
 
     const dialog = screen.getByRole('dialog', { name: 'Insignia collection' });
@@ -154,16 +214,24 @@ describe('InsigniaCollection and AllInsigniaDialog', () => {
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 
+  it('features from the full collection too', async () => {
+    const onSetFeatured = vi.fn(async () => {});
+    render(<AllInsigniaDialog insignia={PROFILE.insignia} featuredIds={[]} onSetFeatured={onSetFeatured} onClose={() => {}} />);
+
+    await userEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: /^Commander/ }));
+    expect(onSetFeatured).toHaveBeenCalledWith([8]);
+  });
+
   it('asks to choose featured insignia', async () => {
     const onChooseFeatured = vi.fn();
-    render(<InsigniaCollection insignia={PROFILE.insignia} featuredIds={[]} onChooseFeatured={onChooseFeatured} />);
+    render(<InsigniaCollection insignia={PROFILE.insignia} featuredIds={[]} onChooseFeatured={onChooseFeatured} onSetFeatured={noSave} />);
     await userEvent.click(screen.getByRole('button', { name: 'Choose featured' }));
     expect(onChooseFeatured).toHaveBeenCalled();
   });
 
   it('closes the full collection with Escape and skips empty groups', () => {
     const onClose = vi.fn();
-    render(<AllInsigniaDialog insignia={PROFILE.insignia.filter((i) => i.earned)} featuredIds={[]} onClose={onClose} />);
+    render(<AllInsigniaDialog insignia={PROFILE.insignia.filter((i) => i.earned)} featuredIds={[]} onSetFeatured={noSave} onClose={onClose} />);
 
     expect(screen.queryByText(/^Locked ·/)).not.toBeInTheDocument();
     fireEvent(screen.getByRole('dialog'), new Event('cancel'));

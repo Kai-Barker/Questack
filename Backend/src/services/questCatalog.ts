@@ -1,5 +1,6 @@
 import { loadCatalogRows } from '../models/questModel.js';
 import type { ChallengeContent, ChallengeType } from '../types/content.js';
+import { parseLineList } from '../utils/lineList.js';
 
 // Every published quest and objective, shaped for the app. Content only
 // changes when quests are seeded or edited, so it's kept in memory for a few
@@ -20,6 +21,7 @@ export interface CatalogChallenge {
   answerKey: string | null;
   markingCriteria: string;
   bugLine: number | null;
+  altBugLines: number[]; // other lines that also count as finding the bug
 }
 
 export interface CatalogQuest {
@@ -71,6 +73,7 @@ async function buildCatalog(): Promise<Catalog> {
       answerKey: c.answer_key,
       markingCriteria: c.marking_criteria ?? '',
       bugLine: c.bug_line,
+      altBugLines: parseLineList(c.alt_bug_lines),
     };
     challengesByQuest.set(c.quest_id, [...(challengesByQuest.get(c.quest_id) ?? []), challenge]);
   }
@@ -152,6 +155,7 @@ export function toChallengeContent(sector: CatalogSector | undefined, quest: Cat
     answerKey: c.answerKey ?? undefined,
     markingCriteria: c.markingCriteria,
     bugLine: c.bugLine ?? undefined,
+    ...(c.altBugLines.length > 0 && { altBugLines: c.altBugLines }),
   };
 }
 

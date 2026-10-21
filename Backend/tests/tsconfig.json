@@ -7,5 +7,5 @@
     "noEmit": true,
     "types": ["node"]
   },
-  "include": [".", "../src", "../database/seeds"]
+  "include": [".", "../src", "../database/seeds", "../database/curriculum"]
 }

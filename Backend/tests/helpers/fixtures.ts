@@ -114,6 +114,7 @@ function challenge(
     answer_key: answerKey,
     marking_criteria: `Criteria for objective ${challengeId}.`,
     bug_line: bugLine,
+    alt_bug_lines: null,
   });
 }
 

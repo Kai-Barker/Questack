@@ -19,6 +19,7 @@
     "db:migrate": "tsx database/migrate.ts",
     "db:seed": "tsx database/seedQuests.ts",
     "db:make-admin": "tsx database/makeAdmin.ts",
+    "db:curriculum": "tsx database/importCurriculum.ts",
     "ai:playground": "tsx scripts/aiPlayground.ts"
   },
   "keywords": [],

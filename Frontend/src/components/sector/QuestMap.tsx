@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import type { SectorQuest } from '../../types/sector';
 import type { QuestState } from '../../utils/quests';
 import type { QuestEdge, QuestLayout } from './questLayout';
@@ -21,16 +22,33 @@ function edgeStyle(edge: QuestEdge, states: Map<number, QuestState>) {
   return { className: 'stroke-slate-500/60', dash: '4 5' };
 }
 
+// Every column of the path gets at least this much room, enough for a node's
+// 9rem title label, so a long sector widens the map instead of overlapping
+const COLUMN_WIDTH_REM = 10;
+const MIN_WIDTH_REM = 52;
+
 // Quest graph for one sector. Nodes are HTML buttons placed by %, and the
 // connecting lines are an SVG stretched over the same box, so both line up
 // at any size.
 export default function QuestMap({ layout, states, selectedId, shipQuestId, onSelect }: QuestMapProps) {
-  const { positions, edges, order } = layout;
+  const { positions, edges, order, columnCount } = layout;
+  const scrollerRef = useRef<HTMLDivElement>(null);
+  const shipX = shipQuestId === null ? undefined : positions.get(shipQuestId)?.x;
+
+  // A map wider than its box opens centred on the ship, not on quest 01
+  useEffect(() => {
+    const scroller = scrollerRef.current;
+    if (!scroller || shipX === undefined) return;
+    scroller.scrollTo({ left: (shipX / 100) * scroller.scrollWidth - scroller.clientWidth / 2 });
+  }, [shipX]);
 
   return (
-    // Scrolls sideways inside its box on narrow screens instead of squashing the nodes
-    <div className="overflow-x-auto">
-      <div className="relative mx-auto h-[30rem] min-w-[52rem] lg:h-[34rem]">
+    // Scrolls sideways inside its box when the path is longer than the screen
+    <div ref={scrollerRef} className="overflow-x-auto">
+      <div
+        className="relative mx-auto h-[30rem] lg:h-[34rem]"
+        style={{ minWidth: `${Math.max(MIN_WIDTH_REM, columnCount * COLUMN_WIDTH_REM)}rem` }}
+      >
         <svg
           viewBox="0 0 100 100"
           preserveAspectRatio="none"

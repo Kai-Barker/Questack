@@ -94,6 +94,12 @@ describe('layoutQuests', () => {
   });
 
   it('handles an empty sector', () => {
-    expect(layoutQuests([])).toEqual({ positions: new Map(), edges: [], order: [] });
+    expect(layoutQuests([])).toEqual({ positions: new Map(), edges: [], order: [], columnCount: 0 });
+  });
+
+  it('counts the columns the longest prerequisite chain needs', () => {
+    expect(layout.columnCount).toBe(3);
+    const chain = Array.from({ length: 12 }, (_, i) => sectorQuest({ questId: i + 1, prerequisiteIds: i ? [i] : [] }));
+    expect(layoutQuests(chain).columnCount).toBe(12);
   });
 });

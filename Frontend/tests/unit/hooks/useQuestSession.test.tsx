@@ -190,6 +190,16 @@ describe('submitting answers', () => {
     expect(lastMessage(session())).toMatchObject({ tone: 'retry', label: 'Objective 01 · Not yet', text: 'Not quite.\n\nWhat value is stored?' });
   });
 
+  it('marks a chat message the pilot submits as their answer, and puts it in the answer box', async () => {
+    const calls = respond('post', '/ai/evaluate', 200, { correct: true, feedback: 'Spot on.' });
+    const { result, session } = setup();
+
+    await act(() => result.current.submitAnswer('It stores 10 in fuel.'));
+
+    expect(calls[0]!.body).toMatchObject({ challengeId: 101, answer: 'It stores 10 in fuel.' });
+    expect(session().state.objectives[0]).toMatchObject({ status: 'cleared', answer: 'It stores 10 in fuel.' });
+  });
+
   it('does nothing with an empty answer', async () => {
     const calls = respond('post', '/ai/evaluate', 200, {});
     const { result } = setup();

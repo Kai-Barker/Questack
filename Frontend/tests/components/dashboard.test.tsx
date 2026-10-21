@@ -229,6 +229,12 @@ describe('TopNav', () => {
     expect(screen.getByText('VE')).toBeInTheDocument();
   });
 
+  it('opens the Profile from the pilot’s badge', async () => {
+    const { user } = renderNav('/settings');
+    await user.click(screen.getByText('VE'));
+    expect(currentLocation()).toBe('/profile');
+  });
+
   it('shows a running booster', () => {
     renderNav('/', fakePilot({ pilot: { ...PILOT, activeBooster: { name: 'Overdrive Core', xpMultiplier: 2, questsRemaining: 3 } } }));
     expect(screen.getByText(/2× XP booster/)).toHaveTextContent('Overdrive Core active');

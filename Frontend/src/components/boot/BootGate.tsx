@@ -6,6 +6,9 @@ import SplashScreen from './SplashScreen';
 
 // Pages that are already a sign-in step: no point sending pilots back to them
 const ENTRY_PATHS = new Set(['/', '/login', '/enlist']);
+// Readable by anyone, straight away: the enlist form opens these in a new tab,
+// where the splash would otherwise stand in front of them
+const PUBLIC_PATHS = new Set(['/terms', '/privacy', '/recover']);
 
 // Plays the splash on every fresh load, whatever the URL, until the app has
 // loaded. Signed-in pilots then go straight to the page they opened; signed-out
@@ -29,7 +32,7 @@ export default function BootGate() {
   const arrived = destination !== null && location.pathname === destination;
   if (!entered && ((boot.phase === 'ready' && status === 'authenticated') || arrived)) setEntered(true);
 
-  if (entered) return <Outlet />;
+  if (entered || PUBLIC_PATHS.has(location.pathname)) return <Outlet />;
 
   const next = ENTRY_PATHS.has(location.pathname) ? '' : `?next=${encodeURIComponent(requestedPath)}`;
   const enter = (pathname: string) => {

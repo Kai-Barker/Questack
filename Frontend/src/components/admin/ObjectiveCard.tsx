@@ -32,7 +32,9 @@ function summary(o: ObjectiveDraft): string {
     return heading ? `${heading} · ${words} word${words === 1 ? '' : 's'}` : 'No briefing yet';
   }
   const first = o.instructions.trim().split('\n')[0] || 'No instructions yet';
-  return o.type === 'bug_hunt' && o.bugLine.trim() ? `${first} · Bug on line ${o.bugLine.trim()}` : first;
+  if (o.type !== 'bug_hunt' || !o.bugLine.trim()) return first;
+  const also = o.altBugLines.trim() ? ` (also ${o.altBugLines.trim()})` : '';
+  return `${first} · Bug on line ${o.bugLine.trim()}${also}`;
 }
 
 interface BriefingFieldProps {
@@ -237,7 +239,11 @@ export default function ObjectiveCard({
 
             {hasQuestCode(objective.type) && (
               <>
-                <div className="grid gap-5 sm:grid-cols-[minmax(0,1fr)_10rem]">
+                <div
+                  className={`grid gap-5 ${
+                    objective.type === 'bug_hunt' ? 'sm:grid-cols-[minmax(0,1fr)_8rem_11rem]' : 'sm:grid-cols-[minmax(0,1fr)_10rem]'
+                  }`}
+                >
                   <TextField
                     id={id('file')}
                     label="File name"
@@ -258,6 +264,19 @@ export default function ObjectiveCard({
                       value={objective.bugLine}
                       onChange={(value) => onChange({ bugLine: value })}
                       error={errors.bugLine}
+                    />
+                  )}
+                  {objective.type === 'bug_hunt' && (
+                    <TextField
+                      id={id('alt-bug-lines')}
+                      label="Also accept lines"
+                      inputMode="numeric"
+                      value={objective.altBugLines}
+                      onChange={(altBugLines) => onChange({ altBugLines })}
+                      placeholder="e.g. 4, 7"
+                      maxLength={60}
+                      error={errors.altBugLines}
+                      hint="Other lines where a fix also works"
                     />
                   )}
                 </div>

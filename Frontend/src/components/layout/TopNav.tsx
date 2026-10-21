@@ -93,28 +93,38 @@ export default function TopNav({ slotRef, slotInUse }: TopNavProps) {
               </ChamferFrame>
             )}
 
-            <div className="hidden text-right sm:block">
-              <p className="font-display text-sm font-semibold tracking-[0.2em] uppercase">
-                {pilot.rank} · Lvl {pilot.level}
-              </p>
-              <ProgressBar
-                value={pilot.levelXp}
-                max={pilot.levelXpRequired}
-                label={`XP to level ${pilot.level + 1}`}
-                className="mt-1.5 w-40"
-              />
-              <p className="mt-1 text-xs text-muted">
-                {formatNumber(pilot.levelXp)} / {formatNumber(pilot.levelXpRequired)} XP
-              </p>
-            </div>
-
-            <ChamferFrame
-              size="sm"
-              innerClassName="grid size-10 place-items-center bg-panel font-display text-sm font-semibold"
+            {/* The pilot's rank, XP and badge open their Profile */}
+            <Link
+              to="/profile"
+              title="Open your profile"
+              className="group flex items-center gap-4 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent"
             >
-              <span aria-hidden="true">{initials(pilot.callsign)}</span>
-              <span className="sr-only">Signed in as {pilot.callsign}</span>
-            </ChamferFrame>
+              <div className="hidden text-right sm:block">
+                <p className="font-display text-sm font-semibold tracking-[0.2em] uppercase group-hover:text-accent">
+                  {pilot.rank} · Lvl {pilot.level}
+                </p>
+                <ProgressBar
+                  value={pilot.levelXp}
+                  max={pilot.levelXpRequired}
+                  label={`XP to level ${pilot.level + 1}`}
+                  className="mt-1.5 w-40"
+                />
+                <p className="mt-1 text-xs text-muted">
+                  {formatNumber(pilot.levelXp)} / {formatNumber(pilot.levelXpRequired)} XP
+                </p>
+              </div>
+
+              <ChamferFrame
+                as="span"
+                size="sm"
+                grow="sm"
+                borderClassName="bg-line group-hover:bg-accent/70"
+                innerClassName="grid size-10 place-items-center bg-panel font-display text-sm font-semibold group-hover:text-accent"
+              >
+                <span aria-hidden="true">{initials(pilot.callsign)}</span>
+                <span className="sr-only">Signed in as {pilot.callsign}</span>
+              </ChamferFrame>
+            </Link>
 
             <button
               type="button"
