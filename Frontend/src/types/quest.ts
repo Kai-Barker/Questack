@@ -17,8 +17,8 @@ export interface QuestChallenge {
   challengeId: number;
   challengeOrder: number;
   challengeType: ChallengeType;
-  instructions: string;
-  code?: ChallengeCode; // decode_transmission has none: the learner supplies the code
+  instructions: string; // briefings: the whole briefing, in Markdown
+  code?: ChallengeCode; // decode_transmission and briefings have none
 }
 
 export interface QuestDetail {

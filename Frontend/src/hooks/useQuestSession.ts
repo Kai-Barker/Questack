@@ -8,7 +8,7 @@ import {
   requestHint,
   sendMentorMessage,
 } from '../services/aiService';
-import { completeQuest } from '../services/questService';
+import { completeQuest, markBriefingRead } from '../services/questService';
 import type { ChatTurn, Evaluation } from '../types/ai';
 import type { ProficiencyLevel } from '../types/pilot';
 import type { QuestCompletion, QuestDetail } from '../types/quest';
@@ -44,7 +44,7 @@ export interface CommsMessage {
   label?: string; // small heading above the message, e.g. "Hint 1 of 3"
 }
 
-type Busy = 'hint' | 'submit' | 'chat' | 'decode' | 'complete' | null;
+type Busy = 'hint' | 'submit' | 'chat' | 'decode' | 'read' | 'complete' | null;
 
 interface SessionState {
   current: number; // the objective being worked on
@@ -215,10 +215,11 @@ export function useQuestSession(quest: QuestDetail) {
   const challenge = quest.challenges[index];
   const progress = state.objectives[index];
   const isDecode = challenge?.challengeType === 'decode_transmission';
+  const isBriefing = challenge?.challengeType === 'briefing';
   const pastedCode = isDecode && progress?.pastedCode.trim() ? progress.pastedCode : undefined;
 
   async function requestNextHint() {
-    if (state.busy || !challenge || !progress || progress.status !== 'current') return;
+    if (state.busy || !challenge || !progress || progress.status !== 'current' || isBriefing) return;
     if (progress.hintsUsed >= MAX_HINTS) return;
     const tier = (progress.hintsUsed + 1) as 1 | 2 | 3;
 
@@ -284,11 +285,11 @@ export function useQuestSession(quest: QuestDetail) {
       const debrief = await requestDebrief({
         questId: quest.questId,
         proficiency: state.explainAs,
-        objectives: results.map((r, i) => ({
-          challengeType: quest.challenges[i]?.challengeType ?? 'read_and_explain',
-          attempts: Math.max(1, r.attempts),
-          hintsUsed: r.hintsUsed,
-        })),
+        // Briefings are only read, so there's nothing about them to debrief
+        objectives: results.flatMap((r, i) => {
+          const challengeType = quest.challenges[i]?.challengeType ?? 'read_and_explain';
+          return challengeType === 'briefing' ? [] : [{ challengeType, attempts: Math.max(1, r.attempts), hintsUsed: r.hintsUsed }];
+        }),
       }).catch(() => FALLBACK_DEBRIEF);
       dispatch({ type: 'completed', completion, debrief });
       reloadPilot(); // the nav bar picks up the new XP and level
@@ -316,7 +317,7 @@ export function useQuestSession(quest: QuestDetail) {
   }, []);
 
   async function submitAnswer() {
-    if (state.busy || !challenge || !progress || progress.status !== 'current') return;
+    if (state.busy || !challenge || !progress || progress.status !== 'current' || isBriefing) return;
     const answer = progress.answer.trim();
     if (!answer || (isDecode && !progress.decoded)) return;
 
@@ -341,7 +342,11 @@ export function useQuestSession(quest: QuestDetail) {
       text: evaluation.guidingQuestion ? `${evaluation.feedback}\n\n${evaluation.guidingQuestion}` : evaluation.feedback,
     });
 
-    if (!evaluation.correct) return;
+    if (evaluation.correct) await moveOn();
+  }
+
+  // After the current objective is cleared: announce the next one, or file the quest
+  async function moveOn() {
     const next = quest.challenges[index + 1];
     if (next) {
       addMessages({
@@ -352,6 +357,25 @@ export function useQuestSession(quest: QuestDetail) {
     } else {
       await finishQuest(index);
     }
+  }
+
+  // A briefing has no answer: confirming it was read clears it
+  async function acknowledgeBriefing() {
+    if (state.busy || !challenge || !progress || progress.status !== 'current' || !isBriefing) return;
+    dispatch({ type: 'busy', busy: 'read' });
+    try {
+      await markBriefingRead(challenge.challengeId);
+    } catch {
+      // Not an AI call, so the Ship's AI isn't marked offline
+      addMessages({ from: 'ai', tone: 'error', text: "Couldn't log the briefing. Check your connection and try again, Pilot." });
+      return;
+    } finally {
+      dispatch({ type: 'busy', busy: null });
+    }
+
+    dispatch({ type: 'evaluated', index, evaluation: { correct: true, feedback: '' } });
+    addMessages({ from: 'ai', tone: 'info', text: 'Briefing logged, Pilot.' });
+    await moveOn();
   }
 
   return {
@@ -365,6 +389,7 @@ export function useQuestSession(quest: QuestDetail) {
     sendMessage,
     decode,
     submitAnswer,
+    acknowledgeBriefing,
   };
 }
 

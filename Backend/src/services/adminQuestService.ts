@@ -37,7 +37,12 @@ export interface QuestInput extends QuestFields {
 }
 
 export const MAX_OBJECTIVES = 99;
+export const MAX_INSTRUCTIONS_LENGTH = 5000;
+export const MAX_BRIEFING_LENGTH = 20_000; // a briefing's Markdown is its instructions
 export const FIELDS_MESSAGE = 'Check the highlighted fields.';
+
+// Only these show the pilot a snippet of quest code and mark against an answer key
+const needsCode = (type: EditableChallengeType) => type === 'read_and_explain' || type === 'bug_hunt';
 
 // Answer keys and marking criteria go into the Ship's AI prompt, which could
 // repeat a line number back to the pilot. Same check as the seed script.
@@ -54,17 +59,17 @@ function tidyCode(code: string | null | undefined): string | null {
 }
 
 // Decode objectives have no code or answer key (the pilot brings the code);
-// only bug hunts have a bug line
+// briefings have nothing to mark at all; only bug hunts have a bug line
 export function normaliseObjective(o: ObjectiveInput): ObjectiveFields {
-  const decode = o.type === 'decode_transmission';
+  const code = needsCode(o.type);
   return {
     ...(o.challengeId !== undefined && { challengeId: o.challengeId }),
     type: o.type,
     instructions: o.instructions,
-    fileName: decode ? null : blankToNull(o.fileName)?.trim() ?? null,
-    codeSnippet: decode ? null : tidyCode(o.codeSnippet),
-    answerKey: decode ? null : blankToNull(o.answerKey),
-    markingCriteria: o.markingCriteria,
+    fileName: code ? blankToNull(o.fileName)?.trim() ?? null : null,
+    codeSnippet: code ? tidyCode(o.codeSnippet) : null,
+    answerKey: code ? blankToNull(o.answerKey) : null,
+    markingCriteria: o.type === 'briefing' ? '' : o.markingCriteria,
     bugLine: o.type === 'bug_hunt' ? (o.bugLine ?? null) : null,
   };
 }
@@ -76,11 +81,19 @@ export function contentProblems(status: QuestFields['status'], objectives: Objec
   if (objectives.length > MAX_OBJECTIVES) fields.objectives = `A quest can have up to ${MAX_OBJECTIVES} objectives.`;
   if (status === 'published' && objectives.length === 0) {
     fields.objectives = 'Add at least one objective before publishing.';
+  } else if (status === 'published' && objectives.every((o) => o.type === 'briefing')) {
+    fields.objectives = 'Add an objective that tests the pilot, not only briefings, before publishing.';
   }
 
   objectives.forEach((o, i) => {
     const key = (field: string) => `objectives.${i}.${field}`;
-    if (o.type !== 'decode_transmission') {
+    if (o.type !== 'briefing') {
+      if (o.instructions.length > MAX_INSTRUCTIONS_LENGTH) {
+        fields[key('instructions')] = `Keep this to ${MAX_INSTRUCTIONS_LENGTH.toLocaleString('en')} characters or fewer.`;
+      }
+      if (!o.markingCriteria.trim()) fields[key('markingCriteria')] = 'Add marking criteria for the Ship’s AI.';
+    }
+    if (needsCode(o.type)) {
       if (!o.fileName) fields[key('fileName')] = 'Name the file, e.g. Program.cs.';
       if (!o.codeSnippet) fields[key('codeSnippet')] = 'Add the code the pilot will read.';
       if (!o.answerKey) fields[key('answerKey')] = 'Add an answer key for the Ship’s AI to mark against.';

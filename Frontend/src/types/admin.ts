@@ -24,7 +24,7 @@ export interface AdminSector {
 
 export type QuestStatus = 'draft' | 'published';
 // architecture objectives exist in the schema but have no editor yet
-export type EditableChallengeType = 'read_and_explain' | 'bug_hunt' | 'decode_transmission';
+export type EditableChallengeType = 'read_and_explain' | 'bug_hunt' | 'decode_transmission' | 'briefing';
 
 export interface AdminQuestSummary {
   questId: number;

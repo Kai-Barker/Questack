@@ -8,7 +8,13 @@ import {
   writeDebrief,
 } from '../services/ai/aiService.js';
 import { tracked } from '../services/ai/trackUsage.js';
-import { checkCanAnswer, objectiveAccess, requireCompleted, saveAnswer } from '../services/questService.js';
+import {
+  checkCanAnswer,
+  objectiveAccess,
+  requireCompleted,
+  saveAnswer,
+  type ObjectiveAccess,
+} from '../services/questService.js';
 import { HttpError } from '../utils/httpError.js';
 
 // Request bodies are validated before anything reaches Gemini.
@@ -57,7 +63,7 @@ const debriefBody = z.object({
   objectives: z
     .array(
       z.object({
-        challengeType: z.enum(['read_and_explain', 'bug_hunt', 'decode_transmission', 'architecture']),
+        challengeType: z.enum(['read_and_explain', 'bug_hunt', 'decode_transmission', 'architecture', 'briefing']),
         attempts: z.number().int().min(1).max(99),
         hintsUsed: z.number().int().min(0).max(3),
       }),
@@ -65,6 +71,12 @@ const debriefBody = z.object({
     .min(1)
     .max(10),
 });
+
+// Briefings are cleared by reading them (POST /api/quests/objectives/:id/read),
+// so there's nothing for the Ship's AI to mark or hint at
+function rejectBriefing(access: ObjectiveAccess): void {
+  if (access.challenge.type === 'briefing') throw new HttpError(400, 'Briefings have no answer to mark or hint at.');
+}
 
 function parse<T>(schema: z.ZodType<T>, body: unknown): T {
   const result = schema.safeParse(body);
@@ -78,9 +90,10 @@ function parse<T>(schema: z.ZodType<T>, body: unknown): T {
 export async function hint(req: Request, res: Response) {
   const body = parse(hintBody, req.body);
   const userId = req.user!.userId;
-  const { content } = await objectiveAccess(userId, body.challengeId);
+  const access = await objectiveAccess(userId, body.challengeId);
+  rejectBriefing(access);
   const reply = await tracked(userId, 'hint', () =>
-    getHint(content, body.proficiency, body.tier, body.answerDraft, body.pastedCode),
+    getHint(access.content, body.proficiency, body.tier, body.answerDraft, body.pastedCode),
   );
   res.json({ hint: reply });
 }
@@ -101,6 +114,7 @@ export async function evaluate(req: Request, res: Response) {
   const body = parse(evaluateBody, req.body);
   const userId = req.user!.userId;
   const access = await objectiveAccess(userId, body.challengeId);
+  rejectBriefing(access);
   if (access.challenge.type === 'decode_transmission' && !body.pastedCode?.trim()) {
     throw new HttpError(400, 'Paste the intercepted code first.');
   }

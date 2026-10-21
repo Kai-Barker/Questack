@@ -82,6 +82,28 @@ describe('normaliseObjective', () => {
   it('drops a bug line from anything but a bug hunt', () => {
     expect(normaliseObjective({ type: 'read_and_explain', instructions: 'i', markingCriteria: 'm', bugLine: 3 }).bugLine).toBeNull();
   });
+
+  it('keeps only the Markdown of a briefing', () => {
+    expect(
+      normaliseObjective({
+        type: 'briefing',
+        instructions: '# Variables\n\nA variable is a labelled cargo crate.',
+        fileName: 'a.cs',
+        codeSnippet: 'x',
+        answerKey: 'k',
+        markingCriteria: 'm',
+        bugLine: 2,
+      }),
+    ).toEqual({
+      type: 'briefing',
+      instructions: '# Variables\n\nA variable is a labelled cargo crate.',
+      fileName: null,
+      codeSnippet: null,
+      answerKey: null,
+      markingCriteria: '',
+      bugLine: null,
+    });
+  });
 });
 
 describe('contentProblems', () => {
@@ -109,6 +131,35 @@ describe('contentProblems', () => {
     });
     expect(contentProblems('draft', [{ ...bugHunt, bugLine: 3 }])).toEqual({
       'objectives.0.bugLine': 'The code only has 2 lines.',
+    });
+  });
+
+  it('needs marking criteria on everything but a briefing', () => {
+    expect(contentProblems('draft', [{ ...bugHunt, markingCriteria: '  ' }])).toEqual({
+      'objectives.0.markingCriteria': 'Add marking criteria for the Ship’s AI.',
+    });
+  });
+
+  describe('briefings', () => {
+    const briefing = normaliseObjective({ type: 'briefing', instructions: 'Read me.', markingCriteria: '' });
+
+    it('need no code, answer key or marking criteria', () => {
+      expect(contentProblems('published', [briefing, bugHunt])).toEqual({});
+    });
+
+    it('can be long; other instructions are kept to 5,000 characters', () => {
+      const long = 'x'.repeat(5001);
+      expect(contentProblems('draft', [{ ...briefing, instructions: long }])).toEqual({});
+      expect(contentProblems('draft', [{ ...bugHunt, instructions: long }])).toEqual({
+        'objectives.0.instructions': 'Keep this to 5,000 characters or fewer.',
+      });
+    });
+
+    it('can’t be the only objectives in a published quest', () => {
+      expect(contentProblems('published', [briefing])).toEqual({
+        objectives: 'Add an objective that tests the pilot, not only briefings, before publishing.',
+      });
+      expect(contentProblems('draft', [briefing])).toEqual({});
     });
   });
 });

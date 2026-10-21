@@ -5,7 +5,7 @@ import type { ProficiencyLevel } from './pilot';
 // One language plus every published quest in it, with the pilot's progress.
 
 // Matches the challenge_type enum in challenges
-export type ChallengeType = 'read_and_explain' | 'bug_hunt' | 'decode_transmission' | 'architecture';
+export type ChallengeType = 'read_and_explain' | 'bug_hunt' | 'decode_transmission' | 'architecture' | 'briefing';
 
 export interface QuestObjective {
   challengeOrder: number;

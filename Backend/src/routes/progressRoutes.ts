@@ -4,6 +4,7 @@ import {
   getPilot,
   getQuest,
   getSector,
+  postBriefingRead,
   postQuestComplete,
   updateSectorRank,
 } from '../controllers/progressController.js';
@@ -16,6 +17,7 @@ import { appIpLimiter, pilotReadLimiter, progressWriteLimiter, questCompleteLimi
 //   GET   /sectors/:id          one sector's quests
 //   PATCH /sectors/:id/rank     the pilot's rank in a sector
 //   GET   /quests/:id           a quest to play (403 while locked)
+//   POST  /quests/objectives/:id/read  clear a briefing objective
 //   POST  /quests/:id/complete  clear a quest
 // None takes a user id: everything is for the pilot in the session.
 const progressRoutes = Router();
@@ -33,6 +35,7 @@ progressRoutes.get('/dashboard', pilotReadLimiter, getDashboard);
 progressRoutes.get('/sectors/:id', pilotReadLimiter, getSector);
 progressRoutes.patch('/sectors/:id/rank', progressWriteLimiter, updateSectorRank);
 progressRoutes.get('/quests/:id', pilotReadLimiter, getQuest);
+progressRoutes.post('/quests/objectives/:id/read', progressWriteLimiter, postBriefingRead);
 progressRoutes.post('/quests/:id/complete', questCompleteLimiter, postQuestComplete);
 
 export default progressRoutes;

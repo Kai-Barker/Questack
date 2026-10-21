@@ -1,7 +1,7 @@
 import type { Request, Response } from 'express';
 import { z } from 'zod';
 import { changeRank, dashboard, pilotSummary, sectorDetail } from '../services/progressService.js';
-import { completeQuest, questDetail } from '../services/questService.js';
+import { acknowledgeBriefing, completeQuest, questDetail } from '../services/questService.js';
 import { HttpError } from '../utils/httpError.js';
 import { parse } from '../utils/validation.js';
 
@@ -38,6 +38,12 @@ export async function updateSectorRank(req: Request, res: Response) {
 
 export async function getQuest(req: Request, res: Response) {
   res.json(await questDetail(req.user!.userId, idParam(req.params.id)));
+}
+
+// No body: reading a briefing is the whole objective
+export async function postBriefingRead(req: Request, res: Response) {
+  await acknowledgeBriefing(req.user!.userId, idParam(req.params.id));
+  res.status(204).end();
 }
 
 // No body: the server already knows which objectives were cleared

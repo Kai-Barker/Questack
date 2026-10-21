@@ -15,11 +15,11 @@
 //   questId * 100 + order.
 // =====================================================================
 
-export type ChallengeType = 'read_and_explain' | 'bug_hunt' | 'decode_transmission';
+export type ChallengeType = 'read_and_explain' | 'bug_hunt' | 'decode_transmission' | 'briefing';
 
 export interface SeedChallenge {
   type: ChallengeType;
-  instructions: string;
+  instructions: string; // briefings: the Markdown the pilot reads
   fileName?: string;
   code?: string; // decode objectives have none: the pilot pastes their own
   answerKey?: string;

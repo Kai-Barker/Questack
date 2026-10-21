@@ -9,7 +9,7 @@ import { pool } from '../config/db.js';
 export type QuestStatus = 'draft' | 'published';
 export type Difficulty = 'easy' | 'medium' | 'hard';
 // architecture is in the schema, but has no editor or marking support yet
-export type EditableChallengeType = 'read_and_explain' | 'bug_hunt' | 'decode_transmission';
+export type EditableChallengeType = 'read_and_explain' | 'bug_hunt' | 'decode_transmission' | 'briefing';
 
 export interface AdminQuestSummary {
   questId: number;

@@ -3,6 +3,7 @@ import { useModalDialog } from '../../hooks/useModalDialog';
 import { capitalise } from '../../utils/format';
 import { objectiveNumber, type QuestDraft } from '../../utils/adminQuest';
 import CodeViewer from '../quest/CodeViewer';
+import MarkdownBriefing from '../quest/MarkdownBriefing';
 import ChamferFrame from '../ui/ChamferFrame';
 import { CloseIcon } from '../ui/icons';
 import { ObjectiveTypeChip } from './ObjectiveCard';
@@ -85,8 +86,18 @@ export default function QuestPreviewDialog({ draft, sectorName, onClose }: Quest
                   <span className="font-display text-sm font-semibold text-slate-300">{objectiveNumber(i)}</span>
                   <ObjectiveTypeChip type={o.type} />
                 </div>
-                <p className="mt-2 text-sm whitespace-pre-line text-slate-200">{o.instructions.trim() || 'No instructions yet.'}</p>
-                {o.type === 'decode_transmission' ? (
+                {o.type === 'briefing' ? (
+                  <div className="mt-3 border border-line bg-space-950 px-5 py-4">
+                    {o.instructions.trim() ? (
+                      <MarkdownBriefing markdown={o.instructions} language={sectorName} fontSize={14} />
+                    ) : (
+                      <p className="text-sm text-muted">No briefing yet.</p>
+                    )}
+                  </div>
+                ) : (
+                  <p className="mt-2 text-sm whitespace-pre-line text-slate-200">{o.instructions.trim() || 'No instructions yet.'}</p>
+                )}
+                {o.type === 'briefing' ? null : o.type === 'decode_transmission' ? (
                   <p className="mt-2 text-xs text-muted">The pilot pastes their own code here.</p>
                 ) : (
                   <ChamferFrame size="sm" className="mt-3" innerClassName="bg-space-950">

@@ -18,6 +18,7 @@ const challengeLabels: Record<ChallengeType, string> = {
   bug_hunt: 'Bug hunt',
   decode_transmission: 'Decode the transmission',
   architecture: 'Architecture design',
+  briefing: 'Intel briefing',
 };
 
 export function challengeLabel(type: ChallengeType): string {

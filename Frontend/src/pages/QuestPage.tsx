@@ -2,6 +2,7 @@ import { useCallback, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useParams } from 'react-router';
 import { Group, Panel, type Layout } from 'react-resizable-panels';
+import BriefingPanel from '../components/quest/BriefingPanel';
 import CodePanel from '../components/quest/CodePanel';
 import ObjectivePanel from '../components/quest/ObjectivePanel';
 import ObjectiveStepper from '../components/quest/ObjectiveStepper';
@@ -65,6 +66,7 @@ function QuestScreen({ quest }: { quest: QuestDetail }) {
   if (!challenge || !progress) return null;
 
   const reviewing = progress.status !== 'current';
+  const isBriefing = challenge.challengeType === 'briefing';
   const lineCount = challenge.code?.snippet.split('\n').length ?? 1;
 
   const objectivePanel = (
@@ -75,17 +77,26 @@ function QuestScreen({ quest }: { quest: QuestDetail }) {
       progress={progress}
       lineCount={lineCount}
       busy={state.busy !== null}
-      submitting={state.busy === 'submit' || state.busy === 'complete'}
+      submitting={state.busy === 'submit' || state.busy === 'read' || state.busy === 'complete'}
       questCompleted={session.completed}
       onAnswerChange={(answer) => session.editObjective(index, { answer })}
       onMarkedLineChange={(markedLine) => session.editObjective(index, { markedLine })}
       onRequestHint={session.requestNextHint}
       onSubmit={session.submitAnswer}
+      onAcknowledge={session.acknowledgeBriefing}
       onShowDebrief={() => session.setDebriefOpen(true)}
     />
   );
 
-  const codePanel = (
+  // Briefings put their reading where the code usually goes
+  const codePanel = isBriefing ? (
+    <BriefingPanel
+      challenge={challenge}
+      language={quest.sectorDisplayName}
+      fontSize={fontSize}
+      onFontSizeChange={setFontSize}
+    />
+  ) : (
     <CodePanel
       challenge={challenge}
       language={quest.sectorDisplayName}
@@ -164,7 +175,7 @@ function QuestScreen({ quest }: { quest: QuestDetail }) {
         // Small screens: stacked, and the page scrolls
         <main className="space-y-4 px-4 py-4">
           {objectivePanel}
-          <div className="h-[26rem]">{codePanel}</div>
+          <div className={isBriefing ? 'h-[36rem]' : 'h-[26rem]'}>{codePanel}</div>
           <div className="h-[30rem]">{commsPanel}</div>
         </main>
       )}

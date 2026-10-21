@@ -2,15 +2,30 @@ import { fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { ComponentProps } from 'react';
 import { describe, expect, it, vi } from 'vitest';
+import BriefingPanel from '../../src/components/quest/BriefingPanel';
 import CodePanel from '../../src/components/quest/CodePanel';
 import CodeViewer from '../../src/components/quest/CodeViewer';
+import MarkdownBriefing from '../../src/components/quest/MarkdownBriefing';
 import ObjectivePanel from '../../src/components/quest/ObjectivePanel';
 import ObjectiveStepper from '../../src/components/quest/ObjectiveStepper';
 import QuestDebriefModal from '../../src/components/quest/QuestDebriefModal';
 import ShipsAiPanel from '../../src/components/quest/ShipsAiPanel';
 import type { ObjectiveProgress } from '../../src/hooks/useQuestSession';
-import { COMPLETION, DECODE_QUEST, QUEST } from '../helpers/fixtures';
+import { BRIEFING_QUEST, COMPLETION, DECODE_QUEST, QUEST } from '../helpers/fixtures';
 import { renderRoute } from '../helpers/render';
+
+// Mermaid needs a real browser to lay diagrams out, so a fake draws them.
+// Source containing "broken" fails to parse.
+vi.mock('mermaid', () => ({
+  default: {
+    initialize: vi.fn(),
+    parse: vi.fn(async (source: string) => {
+      if (source.includes('broken')) throw new Error('Parse error');
+      return true;
+    }),
+    render: vi.fn(async () => ({ svg: '<svg data-testid="mermaid-svg"></svg>' })),
+  },
+}));
 
 const progress = (overrides: Partial<ObjectiveProgress> = {}): ObjectiveProgress => ({
   status: 'current',
@@ -37,6 +52,7 @@ describe('ObjectivePanel', () => {
       onMarkedLineChange: vi.fn(),
       onRequestHint: vi.fn(),
       onSubmit: vi.fn(),
+      onAcknowledge: vi.fn(),
       onShowDebrief: vi.fn(),
       ...overrides,
     };
@@ -130,6 +146,116 @@ describe('ObjectivePanel', () => {
     const { user, props } = renderPanel({ questCompleted: true, progress: progress({ status: 'cleared' }) });
     await user.click(screen.getByRole('button', { name: 'View debrief' }));
     expect(props.onShowDebrief).toHaveBeenCalled();
+  });
+});
+
+describe('ObjectivePanel on a briefing', () => {
+  const briefing = BRIEFING_QUEST.challenges[0]!;
+
+  function renderBriefing(overrides: Partial<ComponentProps<typeof ObjectivePanel>> = {}) {
+    const props: ComponentProps<typeof ObjectivePanel> = {
+      quest: BRIEFING_QUEST,
+      index: 0,
+      challenge: briefing,
+      progress: progress(),
+      lineCount: 1,
+      busy: false,
+      submitting: false,
+      questCompleted: false,
+      onAnswerChange: vi.fn(),
+      onMarkedLineChange: vi.fn(),
+      onRequestHint: vi.fn(),
+      onSubmit: vi.fn(),
+      onAcknowledge: vi.fn(),
+      onShowDebrief: vi.fn(),
+      ...overrides,
+    };
+    return { ...renderRoute(<ObjectivePanel {...props} />), props };
+  }
+
+  it('asks for no answer: one button clears it', async () => {
+    const { user, props } = renderBriefing();
+
+    expect(screen.queryByLabelText('Your answer')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Request hint/ })).not.toBeInTheDocument();
+    // The briefing itself is in the briefing pane, not repeated here
+    expect(screen.queryByText(/Cargo crates/)).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Briefing understood' }));
+    expect(props.onAcknowledge).toHaveBeenCalled();
+  });
+
+  it('shows "Logging…" while it’s saved', () => {
+    renderBriefing({ busy: true, submitting: true });
+    expect(screen.getByRole('button', { name: 'Logging…' })).toBeDisabled();
+  });
+
+  it('says it was read once cleared', () => {
+    renderBriefing({ progress: progress({ status: 'cleared', attempts: 1, lastEvaluation: { correct: true, feedback: '' } }) });
+
+    expect(screen.getByText('Cleared · Briefing read')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Briefing understood' })).not.toBeInTheDocument();
+  });
+});
+
+describe('BriefingPanel', () => {
+  it('renders the briefing’s Markdown, with its code highlighted like quest code', () => {
+    renderRoute(
+      <BriefingPanel challenge={BRIEFING_QUEST.challenges[0]!} language="C#" fontSize={14} onFontSizeChange={vi.fn()} />,
+    );
+
+    const article = screen.getByRole('article', { name: 'Intel briefing' });
+    expect(within(article).getByRole('heading', { level: 2, name: 'Cargo crates' })).toBeInTheDocument();
+    expect(within(article).getByText('A variable is a labelled crate.')).toBeInTheDocument();
+    expect(within(article).getByRole('textbox', { name: 'Code example from the briefing' })).toHaveTextContent('int fuel = 10;');
+  });
+
+  it('resizes the briefing text', async () => {
+    const onFontSizeChange = vi.fn();
+    const { user } = renderRoute(
+      <BriefingPanel challenge={BRIEFING_QUEST.challenges[0]!} language="C#" fontSize={14} onFontSizeChange={onFontSizeChange} />,
+    );
+
+    await user.click(screen.getByRole('button', { name: 'Larger briefing text' }));
+    expect(onFontSizeChange).toHaveBeenCalledWith(16);
+  });
+});
+
+describe('MarkdownBriefing', () => {
+  const show = (markdown: string) => renderRoute(<MarkdownBriefing markdown={markdown} language="C#" fontSize={14} />);
+
+  it('renders tables, lists and links that open safely in a new tab', () => {
+    show('| Type | Holds |\n| --- | --- |\n| int | whole numbers |\n\n- one\n- two\n\n[Docs](https://learn.microsoft.com)');
+
+    expect(screen.getByRole('table')).toBeInTheDocument();
+    expect(screen.getByRole('cell', { name: 'whole numbers' })).toBeInTheDocument();
+    expect(screen.getAllByRole('listitem')).toHaveLength(2);
+    expect(screen.getByRole('link', { name: 'Docs' })).toHaveAttribute('rel', 'noopener noreferrer');
+  });
+
+  it('never runs HTML or javascript: links written into the Markdown', () => {
+    const { container } = show('<script>alert(1)</script>\n\n<img src=x onerror="alert(1)">\n\n[Click](javascript:alert(1))');
+
+    expect(container.querySelector('script')).toBeNull();
+    expect(container.querySelector('img')).toBeNull();
+    expect(screen.getByText('Click').closest('a')?.getAttribute('href') ?? '').not.toContain('javascript');
+  });
+
+  it('shows images with their alt text', () => {
+    show('![Stack and heap](https://example.com/memory.png)');
+    expect(screen.getByRole('img', { name: 'Stack and heap' })).toHaveAttribute('loading', 'lazy');
+  });
+
+  it('draws Mermaid diagrams', async () => {
+    show('```mermaid\nflowchart TD\n  A --> B\n```');
+    expect(await screen.findByTestId('mermaid-svg')).toBeInTheDocument();
+  });
+
+  it('shows a broken diagram’s source instead of nothing', async () => {
+    show('```mermaid\nbroken diagram\n```');
+
+    expect(await screen.findByText('This diagram couldn’t be drawn. Its source is shown instead.')).toBeInTheDocument();
+    expect(screen.getByRole('textbox', { name: 'Diagram source' })).toHaveTextContent('broken diagram');
   });
 });
 

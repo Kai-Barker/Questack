@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { findAdminUser, getOverview, listUsers, recentAiUsage, setUserActive } from '../models/adminModel.js';
 import { deleteDraftQuest, findQuest, listQuests, listSectors } from '../models/adminQuestModel.js';
 import { invalidateCatalog } from '../services/questCatalog.js';
-import { MAX_OBJECTIVES, saveQuest } from '../services/adminQuestService.js';
+import { MAX_BRIEFING_LENGTH, MAX_OBJECTIVES, saveQuest } from '../services/adminQuestService.js';
 import { HttpError } from '../utils/httpError.js';
 import { parse } from '../utils/validation.js';
 
@@ -29,8 +29,9 @@ const optionalText = (max: number) =>
 
 const objective = z.strictObject({
   challengeId: id.optional(),
-  type: z.enum(['read_and_explain', 'bug_hunt', 'decode_transmission'], 'Pick an objective type.'),
-  instructions: text(5000, 'Add instructions for the pilot.'),
+  type: z.enum(['read_and_explain', 'bug_hunt', 'decode_transmission', 'briefing'], 'Pick an objective type.'),
+  // Briefings hold a whole Markdown lesson; adminQuestService keeps the other types to 5,000
+  instructions: text(MAX_BRIEFING_LENGTH, 'Add instructions for the pilot.'),
   fileName: optionalText(100).refine(
     (name) => !name?.trim() || /^[\w.-]+$/.test(name.trim()),
     'Use letters, numbers, dots, - and _ only, e.g. Program.cs.',
@@ -38,7 +39,8 @@ const objective = z.strictObject({
   // Snippets aren't trimmed here: indentation matters
   codeSnippet: optionalText(20_000),
   answerKey: optionalText(5000),
-  markingCriteria: text(5000, 'Add marking criteria for the Ship’s AI.'),
+  // Briefings have none, so whether it's required is checked by adminQuestService
+  markingCriteria: z.string().trim().max(5000, 'Keep this to 5,000 characters or fewer.'),
   bugLine: z.number('Enter a line number.').int('Enter a whole line number.').min(1, 'Lines start at 1.').max(5000).nullable().optional(),
 });
 

@@ -154,6 +154,16 @@ export async function saveAnswer(
   }
 }
 
+// ---------------------------------------------------------------------
+// POST /api/quests/objectives/:id/read
+// ---------------------------------------------------------------------
+// A briefing has nothing to mark: confirming it was read clears it
+export async function acknowledgeBriefing(userId: number, challengeId: number): Promise<void> {
+  const access = await objectiveAccess(userId, challengeId);
+  if (access.challenge.type !== 'briefing') throw new HttpError(400, 'Only briefings can be cleared by reading them.');
+  await saveAnswer(userId, access, { text: '', feedback: '', correct: true, hintsUsed: 0 });
+}
+
 // The debrief is only written for a quest the pilot has actually cleared
 export async function requireCompleted(userId: number, questId: number): Promise<CatalogQuest & { language: string }> {
   const catalog = await getCatalog();

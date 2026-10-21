@@ -3,7 +3,7 @@
 // ever go into prompts, never into a response to the browser.
 
 export type Proficiency = 'cadet' | 'pilot' | 'commander';
-export type ChallengeType = 'read_and_explain' | 'bug_hunt' | 'decode_transmission' | 'architecture';
+export type ChallengeType = 'read_and_explain' | 'bug_hunt' | 'decode_transmission' | 'architecture' | 'briefing';
 
 export interface ChallengeContent {
   challengeId: number;
@@ -12,7 +12,7 @@ export interface ChallengeContent {
   concept: string;
   language: string; // display name, e.g. 'C#'
   challengeType: ChallengeType;
-  instructions: string;
+  instructions: string; // briefings: the whole Markdown briefing
   codeSnippet?: string; // decode_transmission has none: the pilot pastes their own
   answerKey?: string;
   markingCriteria: string;

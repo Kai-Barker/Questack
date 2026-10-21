@@ -29,7 +29,7 @@ function check(quest: SeedQuest) {
 
   quest.challenges.forEach((c, i) => {
     const label = `objective ${i + 1}`;
-    if (c.type !== 'decode_transmission' && (!c.code || !c.fileName || !c.answerKey)) {
+    if ((c.type === 'read_and_explain' || c.type === 'bug_hunt') && (!c.code || !c.fileName || !c.answerKey)) {
       problems.push(`${label} needs code, a file name and an answer key`);
     }
     if (c.type === 'bug_hunt') {

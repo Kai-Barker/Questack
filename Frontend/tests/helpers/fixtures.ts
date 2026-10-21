@@ -113,6 +113,16 @@ export const DECODE_QUEST: QuestDetail = {
   challenges: [{ challengeId: 202, challengeOrder: 1, challengeType: 'decode_transmission', instructions: 'Paste some code.' }],
 };
 
+// An Intel briefing to read first, then the questions from QUEST
+export const BRIEFING_MARKDOWN = '# Cargo crates\n\nA variable is a labelled crate.\n\n```csharp\nint fuel = 10;\n```';
+export const BRIEFING_QUEST: QuestDetail = {
+  ...QUEST,
+  challenges: [
+    { challengeId: 100, challengeOrder: 1, challengeType: 'briefing', instructions: BRIEFING_MARKDOWN },
+    ...QUEST.challenges.map((c) => ({ ...c, challengeOrder: c.challengeOrder + 1 })),
+  ],
+};
+
 export const COMPLETION: QuestCompletion = {
   baseXp: 100,
   xpEarned: 100,

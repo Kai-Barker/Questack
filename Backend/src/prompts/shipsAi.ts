@@ -16,6 +16,7 @@ const CHALLENGE_LABELS: Record<ChallengeType, string> = {
   bug_hunt: 'Bug hunt',
   decode_transmission: 'Decode the transmission',
   architecture: 'Architecture design',
+  briefing: 'Intel briefing',
 };
 
 export function systemInstruction(proficiency: Proficiency, language: string): string {
@@ -52,8 +53,19 @@ function objectiveContext(challenge: ChallengeContent, pastedCode: string | unde
   const parts = [
     `Quest: ${challenge.questTitle} (concept: ${challenge.concept})`,
     `Objective type: ${CHALLENGE_LABELS[challenge.challengeType]}`,
-    `Objective instructions: ${challenge.instructions}`,
   ];
+
+  // A briefing is the lesson itself (written by the quest's author, in
+  // Markdown), and there is no answer to protect
+  if (challenge.challengeType === 'briefing') {
+    parts.push(
+      `Briefing the pilot is reading:\n${challenge.instructions}`,
+      "This objective is a briefing: there is no question to answer, so explain anything in it freely and as fully as the pilot needs. Don't quiz them; they'll be tested in the next objectives.",
+    );
+    return parts.join('\n\n');
+  }
+
+  parts.push(`Objective instructions: ${challenge.instructions}`);
 
   if (challenge.codeSnippet) {
     parts.push(`<quest_code language="${challenge.language}">\n${numbered(challenge.codeSnippet)}\n</quest_code>`);

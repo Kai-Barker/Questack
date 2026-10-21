@@ -82,6 +82,7 @@ const OBJECTIVE_LABELS: Record<ChallengeType, string> = {
   bug_hunt: 'Bug hunt',
   decode_transmission: 'Decode the transmission',
   architecture: 'Architecture design',
+  briefing: 'Intel briefing',
 };
 
 // unlock_condition is "<stat>>=<number>". Anything else (a typo, or a rule
@@ -162,7 +163,10 @@ async function loadPilot(userId: number) {
   const earnedIds = new Set(insignia.filter((i) => i.earned).map((i) => i.rewardId));
 
   // Most-cleared objective type, and the sector with the most XP
-  const favourite = [...answersByType.entries()].sort((a, b) => b[1] - a[1])[0]?.[0];
+  // (briefings are only read, so they don't count)
+  const favourite = [...answersByType.entries()]
+    .filter(([type]) => type !== 'briefing')
+    .sort((a, b) => b[1] - a[1])[0]?.[0];
   const home = [...core.languages.values()].filter((l) => l.languageXp > 0).sort((a, b) => b.languageXp - a.languageXp)[0];
 
   return {

@@ -35,6 +35,7 @@ export const OBJECTIVE_TYPES: { value: EditableChallengeType; label: string }[] 
   { value: 'read_and_explain', label: 'Read and explain' },
   { value: 'bug_hunt', label: 'Bug hunt' },
   { value: 'decode_transmission', label: 'Decode the transmission' },
+  { value: 'briefing', label: 'Intel briefing' },
 ];
 
 export const DIFFICULTIES: { value: Difficulty; label: string }[] = [
@@ -42,6 +43,9 @@ export const DIFFICULTIES: { value: Difficulty; label: string }[] = [
   { value: 'medium', label: 'Medium' },
   { value: 'hard', label: 'Hard' },
 ];
+
+// Decode objectives use the pilot's own code; briefings have none at all
+export const hasQuestCode = (type: EditableChallengeType) => type === 'read_and_explain' || type === 'bug_hunt';
 
 export const objectiveTypeLabel = (type: EditableChallengeType) =>
   OBJECTIVE_TYPES.find((t) => t.value === type)?.label ?? type;
@@ -120,15 +124,15 @@ export function toInput(draft: QuestDraft): AdminQuestInput {
     xpReward: toNumber(draft.xpReward) as number,
     prerequisiteIds: draft.prerequisiteIds,
     objectives: draft.objectives.map((o) => {
-      const decode = o.type === 'decode_transmission';
+      const code = hasQuestCode(o.type);
       return {
         ...(o.challengeId !== undefined && { challengeId: o.challengeId }),
         type: o.type,
         instructions: o.instructions,
-        fileName: decode ? null : o.fileName || null,
-        codeSnippet: decode ? null : o.codeSnippet || null,
-        answerKey: decode ? null : o.answerKey || null,
-        markingCriteria: o.markingCriteria,
+        fileName: code ? o.fileName || null : null,
+        codeSnippet: code ? o.codeSnippet || null : null,
+        answerKey: code ? o.answerKey || null : null,
+        markingCriteria: o.type === 'briefing' ? '' : o.markingCriteria,
         bugLine: o.type === 'bug_hunt' ? toNumber(o.bugLine) : null,
       };
     }),

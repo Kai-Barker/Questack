@@ -1,7 +1,8 @@
-import { useId } from 'react';
+import { useId, useState } from 'react';
 import type { EditableChallengeType } from '../../types/admin';
-import { OBJECTIVE_TYPES, objectiveNumber, objectiveTypeLabel, type ObjectiveDraft } from '../../utils/adminQuest';
+import { hasQuestCode, OBJECTIVE_TYPES, objectiveNumber, objectiveTypeLabel, type ObjectiveDraft } from '../../utils/adminQuest';
 import CodeViewer from '../quest/CodeViewer';
+import MarkdownBriefing from '../quest/MarkdownBriefing';
 import ChamferFrame from '../ui/ChamferFrame';
 import { ChevronDownIcon, ChevronUpIcon } from '../ui/icons';
 import { FieldError, fieldLabelClasses, SelectField, TextAreaField, TextField } from './fields';
@@ -25,8 +26,75 @@ export function ObjectiveTypeChip({ type }: { type: EditableChallengeType }) {
 // One line under the number, so a collapsed card still says what it is
 function summary(o: ObjectiveDraft): string {
   if (o.type === 'decode_transmission') return 'Learner uploads their own code · No snippet or answer key';
+  if (o.type === 'briefing') {
+    const words = o.instructions.split(/\s+/).filter(Boolean).length;
+    const heading = o.instructions.trim().split('\n')[0]?.replace(/^#+\s*/, '');
+    return heading ? `${heading} · ${words} word${words === 1 ? '' : 's'}` : 'No briefing yet';
+  }
   const first = o.instructions.trim().split('\n')[0] || 'No instructions yet';
   return o.type === 'bug_hunt' && o.bugLine.trim() ? `${first} · Bug on line ${o.bugLine.trim()}` : first;
+}
+
+interface BriefingFieldProps {
+  id: string;
+  name: string; // e.g. 'Objective 01'
+  value: string;
+  language: string;
+  previewing: boolean;
+  onPreviewingChange: (previewing: boolean) => void;
+  onChange: (value: string) => void;
+  error?: string;
+}
+
+// A briefing's Markdown, with a preview of how pilots will see it
+function BriefingField({ id, name, value, language, previewing, onPreviewingChange, onChange, error }: BriefingFieldProps) {
+  return (
+    <div>
+      <div className="flex justify-end gap-1" role="group" aria-label={`${name} briefing view`}>
+        {[
+          { label: 'Write', preview: false },
+          { label: 'Preview', preview: true },
+        ].map((tab) => (
+          <button
+            key={tab.label}
+            type="button"
+            aria-pressed={previewing === tab.preview}
+            onClick={() => onPreviewingChange(tab.preview)}
+            className={`px-3 py-1 font-display text-xs tracking-[0.15em] uppercase focus-visible:outline-2 focus-visible:outline-accent ${
+              previewing === tab.preview ? 'bg-accent-deep text-accent' : 'text-muted hover:text-accent'
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+      {previewing ? (
+        <div className="mt-1">
+          <span className={fieldLabelClasses}>Briefing preview</span>
+          <div className="mt-2 max-h-[32rem] overflow-y-auto border border-line bg-space-950 px-5 py-4">
+            {value.trim() ? (
+              <MarkdownBriefing markdown={value} language={language} fontSize={14} />
+            ) : (
+              <p className="text-sm text-muted">Nothing to preview yet.</p>
+            )}
+          </div>
+          <FieldError id={`${id}-error`} message={error} />
+        </div>
+      ) : (
+        <TextAreaField
+          id={id}
+          label="Briefing (Markdown)"
+          value={value}
+          onChange={onChange}
+          rows={16}
+          maxLength={20000}
+          error={error}
+          className="font-mono"
+          hint="Headings (#), lists, tables, **bold**, code blocks (```csharp), diagrams (```mermaid) and images (![alt](https://…))."
+        />
+      )}
+    </div>
+  );
 }
 
 const moveButton =
@@ -67,7 +135,9 @@ export default function ObjectiveCard({
   const name = `Objective ${number}`;
   const hasErrors = Object.keys(errors).length > 0;
   const decode = objective.type === 'decode_transmission';
+  const briefing = objective.type === 'briefing';
   const bugLine = Number(objective.bugLine);
+  const [previewing, setPreviewing] = useState(false);
 
   return (
     <li data-active={active || undefined} onPointerDown={onActivate} onFocus={onActivate}>
@@ -142,17 +212,30 @@ export default function ObjectiveCard({
               className="max-w-xs"
             />
 
-            <TextAreaField
-              id={id('instructions')}
-              label="Instructions"
-              value={objective.instructions}
-              onChange={(instructions) => onChange({ instructions })}
-              rows={3}
-              maxLength={5000}
-              error={errors.instructions}
-            />
+            {briefing ? (
+              <BriefingField
+                id={id('instructions')}
+                name={name}
+                value={objective.instructions}
+                language={language}
+                previewing={previewing}
+                onPreviewingChange={setPreviewing}
+                onChange={(instructions) => onChange({ instructions })}
+                error={errors.instructions}
+              />
+            ) : (
+              <TextAreaField
+                id={id('instructions')}
+                label="Instructions"
+                value={objective.instructions}
+                onChange={(instructions) => onChange({ instructions })}
+                rows={3}
+                maxLength={5000}
+                error={errors.instructions}
+              />
+            )}
 
-            {!decode && (
+            {hasQuestCode(objective.type) && (
               <>
                 <div className="grid gap-5 sm:grid-cols-[minmax(0,1fr)_10rem]">
                   <TextField
@@ -205,37 +288,41 @@ export default function ObjectiveCard({
               </>
             )}
 
-            <div className={`grid gap-5 ${decode ? '' : 'md:grid-cols-2'}`}>
-              {!decode && (
+            {!briefing && (
+              <div className={`grid gap-5 ${decode ? '' : 'md:grid-cols-2'}`}>
+                {!decode && (
+                  <TextAreaField
+                    id={id('answer')}
+                    label="Answer key"
+                    value={objective.answerKey}
+                    onChange={(answerKey) => onChange({ answerKey })}
+                    rows={4}
+                    maxLength={5000}
+                    error={errors.answerKey}
+                    hint="Only the Ship’s AI sees this. Keep line numbers out of it."
+                  />
+                )}
                 <TextAreaField
-                  id={id('answer')}
-                  label="Answer key"
-                  value={objective.answerKey}
-                  onChange={(answerKey) => onChange({ answerKey })}
+                  id={id('criteria')}
+                  label="Marking criteria"
+                  value={objective.markingCriteria}
+                  onChange={(markingCriteria) => onChange({ markingCriteria })}
                   rows={4}
                   maxLength={5000}
-                  error={errors.answerKey}
-                  hint="Only the Ship’s AI sees this. Keep line numbers out of it."
+                  error={errors.markingCriteria}
+                  hint={decode ? 'What the pilot must show they understood about their own code.' : undefined}
                 />
-              )}
-              <TextAreaField
-                id={id('criteria')}
-                label="Marking criteria"
-                value={objective.markingCriteria}
-                onChange={(markingCriteria) => onChange({ markingCriteria })}
-                rows={4}
-                maxLength={5000}
-                error={errors.markingCriteria}
-                hint={decode ? 'What the pilot must show they understood about their own code.' : undefined}
-              />
-            </div>
+              </div>
+            )}
 
             <p className="text-xs text-muted">
-              {decode
-                ? 'Decode objectives need no snippet or answer key: the learner supplies the code.'
-                : objective.type === 'bug_hunt'
-                  ? 'The server checks the line the pilot marks against the bug line. It’s never sent to their browser.'
-                  : 'Pilots read the snippet and explain it; the Ship’s AI marks them against the answer key.'}
+              {briefing
+                ? 'Pilots read the briefing, can ask the Ship’s AI about it, then press “Briefing understood” to move on. Nothing is marked.'
+                : decode
+                  ? 'Decode objectives need no snippet or answer key: the learner supplies the code.'
+                  : objective.type === 'bug_hunt'
+                    ? 'The server checks the line the pilot marks against the bug line. It’s never sent to their browser.'
+                    : 'Pilots read the snippet and explain it; the Ship’s AI marks them against the answer key.'}
             </p>
           </div>
         )}

@@ -6,7 +6,7 @@ import { PilotContext } from '../../../src/context/PilotContext';
 import { MAX_HINTS, useQuestSession } from '../../../src/hooks/useQuestSession';
 import { COMMS_DOWN_MESSAGE } from '../../../src/services/aiService';
 import type { QuestDetail } from '../../../src/types/quest';
-import { COMPLETION, DECODE_QUEST, QUEST } from '../../helpers/fixtures';
+import { BRIEFING_QUEST, COMPLETION, DECODE_QUEST, QUEST } from '../../helpers/fixtures';
 import { fakePilot } from '../../helpers/render';
 import { apiUrl, respond, server, unreachable } from '../../helpers/server';
 
@@ -253,6 +253,70 @@ describe('submitting answers', () => {
     expect(lastMessage(session())).toMatchObject({
       tone: 'error',
       text: "Couldn't file the quest as cleared. Your answers are saved: refresh the page to try again, Pilot.",
+    });
+  });
+});
+
+describe('briefings', () => {
+  it('opens on the briefing', () => {
+    const { session } = setup(BRIEFING_QUEST);
+    expect(session().state.messages[0]!.text).toContain('Objective 01 is intel briefing.');
+  });
+
+  it('confirming it was read clears it, with no AI call, and unlocks the next objective', async () => {
+    const read = respond('post', '/quests/objectives/100/read', 204);
+    const { result, session } = setup(BRIEFING_QUEST);
+
+    await act(() => result.current.acknowledgeBriefing());
+
+    expect(read).toHaveLength(1);
+    expect(session().state).toMatchObject({ current: 1, viewing: 1, busy: null, online: true });
+    expect(session().state.objectives.map((o) => o.status)).toEqual(['cleared', 'current', 'locked']);
+    expect(session().state.messages.slice(-2)).toMatchObject([
+      { tone: 'info', text: 'Briefing logged, Pilot.' },
+      { tone: 'info', text: 'Objective 02 unlocked: read and explain.' },
+    ]);
+  });
+
+  it('asks for no hints and sends no answers', async () => {
+    // Any request would fail the test: no handlers are set up
+    const { result, session } = setup(BRIEFING_QUEST);
+    act(() => result.current.editObjective(0, { answer: 'I read it.' }));
+
+    await act(() => result.current.requestNextHint());
+    await act(() => result.current.submitAnswer());
+
+    expect(session().state.objectives[0]).toMatchObject({ status: 'current', hintsUsed: 0, attempts: 0 });
+  });
+
+  it('says so if the briefing couldn’t be logged, without taking the Ship’s AI offline', async () => {
+    respond('post', '/quests/objectives/100/read', 500, { error: 'Something went wrong.' });
+    const { result, session } = setup(BRIEFING_QUEST);
+
+    await act(() => result.current.acknowledgeBriefing());
+
+    expect(session().state.objectives[0]!.status).toBe('current');
+    expect(session().state).toMatchObject({ busy: null, online: true });
+    expect(lastMessage(session())).toMatchObject({
+      tone: 'error',
+      text: "Couldn't log the briefing. Check your connection and try again, Pilot.",
+    });
+  });
+
+  it('is left out of the debrief', async () => {
+    respond('post', '/ai/evaluate', 200, { correct: true, feedback: 'Found it.' });
+    respond('post', '/quests/1/complete', 200, COMPLETION);
+    const debrief = respond('post', '/ai/debrief', 200, { debrief: 'Well read, Pilot.' });
+    const { result } = setup({ ...BRIEFING_QUEST, progress: { clearedChallengeIds: [100, 101] } });
+    act(() => result.current.editObjective(2, { answer: '=+ assigns', markedLine: 3 }));
+
+    await act(() => result.current.submitAnswer());
+
+    expect(debrief[0]!.body).toMatchObject({
+      objectives: [
+        { challengeType: 'read_and_explain', attempts: 1, hintsUsed: 0 },
+        { challengeType: 'bug_hunt', attempts: 1, hintsUsed: 0 },
+      ],
     });
   });
 });
