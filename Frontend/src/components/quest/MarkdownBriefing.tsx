@@ -1,8 +1,12 @@
+import { memo, useMemo } from 'react';
 import Markdown, { type Components } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import type { Element } from 'hast';
 import CodeViewer from './CodeViewer';
 import MermaidDiagram from './MermaidDiagram';
+
+// Tables, task lists and strikethrough (GitHub-flavoured Markdown)
+const REMARK_PLUGINS = [remarkGfm];
 
 // Fence names authors are likely to use, mapped to the names CodeViewer
 // highlights. Anything else is shown without highlighting.
@@ -34,11 +38,11 @@ interface MarkdownBriefingProps {
   fontSize: number; // body text; headings and code scale with it
 }
 
-// An Intel briefing's Markdown, styled for the ship. Raw HTML in the Markdown
-// is shown as text, never run (react-markdown's default), and unsafe link
-// targets such as javascript: are dropped.
-export default function MarkdownBriefing({ markdown, language, fontSize }: MarkdownBriefingProps) {
-  const components: Components = {
+// The elements a briefing is drawn with. Built once per language and text
+// size: a new set on every render would make react-markdown remount the whole
+// briefing (redrawing its code and diagrams) whenever the Quest screen updates.
+function briefingComponents(language: string, fontSize: number): Components {
+  return {
     // The quest title is the page's h1, so briefing headings start at h2
     h1: ({ children }) => <h2 className="mt-6 mb-3 font-display text-[1.6em] font-semibold text-slate-50 first:mt-0">{children}</h2>,
     h2: ({ children }) => <h3 className="mt-6 mb-2 font-display text-[1.3em] font-semibold text-slate-50 first:mt-0">{children}</h3>,
@@ -94,12 +98,20 @@ export default function MarkdownBriefing({ markdown, language, fontSize }: Markd
       );
     },
   };
+}
+
+// An Intel briefing's Markdown, styled for the ship. Raw HTML in the Markdown
+// is shown as text, never run (react-markdown's default), and unsafe link
+// targets such as javascript: are dropped. Memoised, so chat and AI updates
+// on the Quest screen don't re-parse the briefing.
+export default memo(function MarkdownBriefing({ markdown, language, fontSize }: MarkdownBriefingProps) {
+  const components = useMemo(() => briefingComponents(language, fontSize), [language, fontSize]);
 
   return (
     <div style={{ fontSize }} className="min-w-0 break-words">
-      <Markdown remarkPlugins={[remarkGfm]} components={components}>
+      <Markdown remarkPlugins={REMARK_PLUGINS} components={components}>
         {markdown}
       </Markdown>
     </div>
   );
-}
+});

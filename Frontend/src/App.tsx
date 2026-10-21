@@ -17,6 +17,7 @@ import LoginPage from './pages/LoginPage';
 import OnboardingPage from './pages/OnboardingPage';
 import PlaceholderPage from './pages/PlaceholderPage';
 import ProfilePage from './pages/ProfilePage';
+import RouteErrorPage from './pages/RouteErrorPage';
 import SectorPage from './pages/SectorPage';
 import SettingsPage from './pages/SettingsPage';
 import AdminAiPage from './pages/admin/AdminAiPage';
@@ -34,6 +35,8 @@ function AuthRoot() {
 const router = createBrowserRouter([
   {
     element: <AuthRoot />,
+    // Last resort: anything that crashes outside the layouts below
+    errorElement: <RouteErrorPage />,
     children: [
       // Signed-out screens
       {
@@ -63,6 +66,8 @@ const router = createBrowserRouter([
               // Pilots who haven't enlisted in a sector yet are sent to onboarding first
               {
                 element: <RequireEnlisted />,
+                // A crashed screen keeps the nav bar, so the pilot can fly elsewhere
+                errorElement: <RouteErrorPage />,
                 children: [
                   { index: true, element: <DashboardPage /> },
                   { path: 'profile', element: <ProfilePage /> },
@@ -85,6 +90,7 @@ const router = createBrowserRouter([
             children: [
               {
                 element: <AdminLayout />,
+                errorElement: <RouteErrorPage />,
                 children: [
                   { index: true, element: <Navigate to="quests" replace /> },
                   // Loaded on demand, like the Quest screen: it uses the code editor too

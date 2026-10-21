@@ -1,5 +1,6 @@
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import mermaid from 'mermaid';
 import type { ComponentProps } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import BriefingPanel from '../../src/components/quest/BriefingPanel';
@@ -249,6 +250,39 @@ describe('MarkdownBriefing', () => {
   it('draws Mermaid diagrams', async () => {
     show('```mermaid\nflowchart TD\n  A --> B\n```');
     expect(await screen.findByTestId('mermaid-svg')).toBeInTheDocument();
+  });
+
+  it('draws diagrams inside the briefing, never on the page body (which would flash its scroll bar)', async () => {
+    const source = 'flowchart LR\n  Sandbox --> Check';
+    const { container } = show(`\`\`\`mermaid\n${source}\n\`\`\``);
+    await screen.findAllByTestId('mermaid-svg');
+
+    const call = vi.mocked(mermaid.render).mock.calls.find(([, text]) => text === source)!;
+    expect(call[2]).toBeInstanceOf(HTMLElement);
+    expect(call[2]).not.toBe(document.body);
+    expect(container.contains(call[2]!)).toBe(true);
+  });
+
+  it('keeps the briefing mounted when the Quest screen updates, so code and diagrams aren’t redrawn', async () => {
+    const source = 'flowchart LR\n  Steady --> State';
+    const briefing = `# Steady\n\n\`\`\`mermaid\n${source}\n\`\`\``;
+    // A new onFontSizeChange each time, as when QuestScreen re-renders for the AI or "explain as"
+    const panel = () => (
+      <BriefingPanel
+        challenge={{ ...BRIEFING_QUEST.challenges[0]!, instructions: briefing }}
+        language="C#"
+        fontSize={14}
+        onFontSizeChange={() => {}}
+      />
+    );
+    const { rerender } = render(panel());
+    await screen.findAllByTestId('mermaid-svg');
+    const heading = screen.getByRole('heading', { name: 'Steady' });
+
+    rerender(panel());
+
+    expect(screen.getByRole('heading', { name: 'Steady' })).toBe(heading);
+    expect(vi.mocked(mermaid.render).mock.calls.filter(([, text]) => text === source)).toHaveLength(1);
   });
 
   it('shows a broken diagram’s source instead of nothing', async () => {
