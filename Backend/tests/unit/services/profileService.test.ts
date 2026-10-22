@@ -9,17 +9,19 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
-describe('insignia list cache', () => {
-  it('loads the insignia once a minute, however many profiles are built', async () => {
+describe('insignia and gear list cache', () => {
+  it('loads each list once a minute, however many profiles are built', async () => {
     vi.useFakeTimers({ toFake: ['Date'] });
     vi.setSystemTime(new Date('2026-10-08T10:00:00Z'));
     await Promise.all([buildProfile(7), buildProfile(7)]);
     await buildProfile(7);
     expect(profiles.listInsignia).toHaveBeenCalledTimes(1);
+    expect(profiles.listGear).toHaveBeenCalledTimes(1);
 
     vi.setSystemTime(new Date('2026-10-08T10:01:01Z'));
     await buildProfile(7);
     expect(profiles.listInsignia).toHaveBeenCalledTimes(2);
+    expect(profiles.listGear).toHaveBeenCalledTimes(2);
   });
 });
 

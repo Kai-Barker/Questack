@@ -1,5 +1,5 @@
 import request from 'supertest';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { app } from '../../src/app.js';
 import * as profiles from '../../src/models/profileModel.js';
 import * as progress from '../../src/models/progressModel.js';
@@ -69,7 +69,12 @@ describe('GET /api/profile/me', () => {
       goal: null,
       favouriteObjective: null,
       featuredIds: [],
-      loadout: { helmet: 'Navigator Visor', armour: null, insignia: null, booster: null },
+      loadout: {
+        frame: { rewardId: 20, code: 'frame-standard', name: 'frame-standard' },
+        visor: { rewardId: 30, code: 'visor-standard', name: 'visor-standard' },
+        insignia: null,
+        booster: null,
+      },
       boosters: [],
     });
     expect(res.body.profile.xpHistory).toHaveLength(8);
@@ -119,6 +124,29 @@ describe('GET /api/profile/me', () => {
     const res = await get();
 
     expect(res.body.profile.title).toBeNull();
+  });
+
+  it('lists the Hangar’s gear by slot, earned from the pilot’s real stats', async () => {
+    veteran();
+    const res = await get();
+    const earned = (options: { code: string; earned: boolean }[]) => Object.fromEntries(options.map((g) => [g.code, g.earned]));
+
+    expect(earned(res.body.profile.gear.frames)).toEqual({ 'frame-standard': true, 'frame-hunter': true });
+    expect(earned(res.body.profile.gear.visors)).toEqual({ 'visor-standard': true, 'visor-ember': true, 'visor-nova': true });
+    expect(res.body.profile.gear.visors.map((g: { perk: string | null }) => g.perk)).toEqual([
+      null,
+      'Streak shield: one missed day a week won’t break your streak.',
+      '+10% XP on first-time quest clears.',
+    ]);
+  });
+
+  it('shows equipped gear, or the Standard item once it’s no longer earned', async () => {
+    veteran();
+    vi.mocked(profiles.findProfile).mockResolvedValue({ ...PROFILE_RECORD, frameRewardId: 21, visorRewardId: 32 });
+    expect((await get()).body.profile.loadout).toMatchObject({ frame: { code: 'frame-hunter' }, visor: { code: 'visor-nova' } });
+
+    vi.mocked(progress.countCorrectAnswersByType).mockResolvedValue(new Map());
+    expect((await get()).body.profile.loadout).toMatchObject({ frame: { code: 'frame-standard' }, visor: { code: 'visor-standard' } });
   });
 
   it('shows the goal sector', async () => {
@@ -171,6 +199,21 @@ describe('PATCH /api/profile/me', () => {
     });
   });
 
+  it('equips an unlocked frame and visor, and rebuilds the profile for the visor’s perk', async () => {
+    veteran();
+    const res = await patch({ frameId: 21, visorId: 31 });
+
+    expect(res.status).toBe(200);
+    expect(profiles.saveProfile).toHaveBeenCalledWith(PILOT.userId, expect.objectContaining({ frameRewardId: 21, visorRewardId: 31 }));
+    // Once to check the change and once more after saving, so the streak shield shows straight away
+    expect(progress.countActivityByDay).toHaveBeenCalledTimes(2);
+  });
+
+  it('goes back to the Standard items with null', async () => {
+    await patch({ frameId: null, visorId: null });
+    expect(profiles.saveProfile).toHaveBeenCalledWith(PILOT.userId, expect.objectContaining({ frameRewardId: null, visorRewardId: null }));
+  });
+
   it('clears the title with null', async () => {
     await patch({ titleId: null });
     expect(vi.mocked(profiles.saveProfile).mock.calls[0]![1].titleRewardId).toBeNull();
@@ -180,6 +223,10 @@ describe('PATCH /api/profile/me', () => {
     ['a title the pilot hasn’t earned', { titleId: 2 }, 'titleId', 'Choose an insignia you have earned.'],
     ['featured insignia not earned', { featuredIds: [1] }, 'featuredIds', 'You can only feature insignia you have earned.'],
     ['an unknown goal sector', { goalLanguageId: 99 }, 'goalLanguageId', 'Choose a sector from the list.'],
+    ['a frame the pilot hasn’t unlocked', { frameId: 21 }, 'frameId', 'Choose a frame you have unlocked.'],
+    ['a visor in the frame slot', { frameId: 30 }, 'frameId', 'Choose a frame you have unlocked.'],
+    ['an unknown visor', { visorId: 999 }, 'visorId', 'Choose a visor you have unlocked.'],
+    ['gear given by name', { visorId: 'visor-nova' }, 'visorId', 'Enter a valid value.'],
     ['a bio over 160 characters', { bio: 'x'.repeat(161) }, 'bio', 'Keep your bio to 160 characters or fewer.'],
     ['a bio with a zero-width space', { bio: 'hi​there' }, 'bio', 'Your bio contains characters that can’t be shown.'],
     ['a bio with a text-direction override', { bio: 'abc‮def' }, 'bio', 'Your bio contains characters that can’t be shown.'],
@@ -242,6 +289,30 @@ describe('PATCH /api/profile/me/callsign', () => {
     expect(res.status).toBe(400);
     expect(res.body.fields[field]).toBe(message);
     expect(profiles.updateUsername).not.toHaveBeenCalled();
+  });
+});
+
+describe('DEV_UNLOCK_ALL_GEAR', () => {
+  afterEach(() => {
+    delete process.env.DEV_UNLOCK_ALL_GEAR;
+    delete process.env.NODE_ENV;
+  });
+
+  const allEarned = (gear: Record<string, { earned: boolean }[]>) => [...gear.frames!, ...gear.visors!].every((g) => g.earned);
+
+  it('unlocks every frame and visor for a new pilot, so locked ones can be equipped', async () => {
+    process.env.DEV_UNLOCK_ALL_GEAR = 'true';
+
+    expect(allEarned((await get()).body.profile.gear)).toBe(true);
+    expect((await patch({ frameId: 21, visorId: 32 })).status).toBe(200);
+  });
+
+  it('is ignored in production', async () => {
+    process.env.DEV_UNLOCK_ALL_GEAR = 'true';
+    process.env.NODE_ENV = 'production';
+
+    expect(allEarned((await get()).body.profile.gear)).toBe(false);
+    expect((await patch({ frameId: 21 })).status).toBe(400);
   });
 });
 

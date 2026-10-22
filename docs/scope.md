@@ -31,7 +31,7 @@ Status key: ✅ done · 🟡 partly done (what's left is in the [sprint plan](sp
 | Daily streaks | ✅ (built early: shown on the dashboard and profile) |
 | Badges (insignia) | ✅ (built early: 8 insignia with unlock rules, featured on the profile) |
 | Boosters (Overdrive Core, 2× XP) | ✅ (built early) |
-| Gear and avatar customisation | ⬜ |
+| Gear and avatar customisation | ✅ (frames and visors, see changes) |
 | Hive assaults (multi-concept tests) | ⬜ |
 | Architecture design quests | ⬜ (schema tables exist from the ERD) |
 | Debrief quests (solve, then justify) | ⬜ |
@@ -61,3 +61,4 @@ Status key: ✅ done · 🟡 partly done (what's left is in the [sprint plan](sp
 | **Streaks, insignia and boosters were built early** (Nice-to-have). | They were cheap once XP tracking existed and they fill out the profile wireframe. Nothing Must-have was delayed for them. |
 | **Gemini Flash is pinned to a version, with automatic fallback to Flash-Lite.** | The newest Flash builds were often overloaded on the free tier (see [risks.md](risks.md)). |
 | **Schema additions** (featured insignia, boosters, decoder records) and editor id ranges (migration 004). | See [erd-changes.md](erd-changes.md). |
+| **Gear is frames and visors, not helmet and armour.** The avatar is a pilot helmet: the frame goes around it and the visor tints its glass. Gear unlocks by milestone rules (like insignia) and is equipped from the Profile's Loadout: each slot (frame, visor, title insignia, booster) opens a picker. Two visors carry a light perk that works only while equipped: a streak shield (one missed day a week doesn't break the current streak) and +10% XP on first clears. | Gear should reward good habits without making answers easier to get. Perks are light and limited to one visor at a time so they can't stack. The longest streak is never shielded, so streak unlocks still need real days in a row. |

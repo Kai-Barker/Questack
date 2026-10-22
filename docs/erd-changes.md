@@ -31,6 +31,14 @@ Later changes are numbered migrations in `Backend/database/migrations/`, applied
 |---|---|
 | **New table `transmission_decodes`** (`user_id`, `language_id`, `code_hash` CHAR(64), `decoded_at`; unique per `user_id` + `code_hash`) | Counts comprehension checks passed on the standalone decoder towards the Decoder insignia. Only a SHA-256 hash is kept, never the code (privacy), and the unique key stops the same code counting twice. |
 
+## 007: Gear (avatar frames and visors)
+
+| Change | Why |
+|---|---|
+| `rewards.gear_slot` (`frame` / `visor`) and `rewards.perk` (`streak_shield` / `xp_bonus`) | Which loadout slot a piece of gear goes in, and what a perk visor does. The XP bonus reuses `rewards.xp_multiplier`. |
+| `users.frame_reward_id`, `users.visor_reward_id` → `rewards` (`ON DELETE SET NULL`) | The equipped frame and visor. `NULL` shows the Standard item. |
+| Seeds 5 frames and 4 visors (`reward_type = 'gear'`) | Earned by the same `"<stat>>=<number>"` unlock rules as insignia, so nothing is written to `user_rewards` |
+
 ## Updated ERD (additions only)
 
 ```
@@ -39,6 +47,7 @@ users ──< user_boosters >────────── rewards
 users ──< transmission_decodes >─── languages
 quests >── rewards            (quests.reward_id: booster granted on first clear)
 users  >── rewards            (users.title_reward_id)
+users  >── rewards            (users.frame_reward_id, users.visor_reward_id: equipped gear)
 users  >── languages          (users.goal_language_id)
 ```
 

@@ -3,6 +3,7 @@ import { MAX_FEATURED, type PilotProfile } from '../../types/profile';
 import { capitalise } from '../../utils/format';
 import Button from '../ui/Button';
 import ChamferFrame from '../ui/ChamferFrame';
+import PilotAvatar from '../ui/PilotAvatar';
 import { PencilIcon } from '../ui/icons';
 import InsigniaBadge from './InsigniaBadge';
 
@@ -44,15 +45,7 @@ export default function ProfileHeader({ profile, onEdit }: ProfileHeaderProps) {
       <div aria-hidden="true" className="absolute inset-0 -z-10 bg-linear-to-r from-space-950/60 to-transparent" />
 
       <div className="flex min-w-0 flex-1 flex-col gap-5 sm:flex-row sm:items-center">
-        {/* DUMMY: empty avatar area until avatar customisation is built */}
-        <ChamferFrame
-          size="octagon"
-          borderClassName="bg-accent/50"
-          className="size-24 shrink-0 sm:size-28"
-          innerClassName="grid place-items-center bg-space-950/90 font-display text-[0.65rem] tracking-[0.2em] text-muted uppercase"
-        >
-          Avatar
-        </ChamferFrame>
+        <PilotAvatar frame={profile.loadout.frame} visor={profile.loadout.visor} className="size-24 shrink-0 sm:size-28" />
 
         <div className="min-w-0">
           <p className="font-display text-xs font-semibold tracking-[0.25em] text-accent uppercase">Pilot profile</p>

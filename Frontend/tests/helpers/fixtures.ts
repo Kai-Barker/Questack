@@ -25,7 +25,10 @@ export const PILOT: PilotSummary = {
   questsCleared: 4,
   sectorsEnlisted: 1,
   currentStreak: 2,
-  loadout: { helmet: { rewardId: 0, name: 'Navigator Visor' } },
+  loadout: {
+    frame: { rewardId: 20, code: 'frame-standard', name: 'Standard Issue' },
+    visor: { rewardId: 32, code: 'visor-nova', name: 'Nova Visor' },
+  },
 };
 
 export const DASHBOARD: DashboardData = {
@@ -168,6 +171,38 @@ export const PROFILE: PilotProfile = {
     { rewardId: 8, code: 'commander', name: 'Commander', description: 'Reach Commander.', earned: true },
   ],
   featuredIds: [1],
-  loadout: { helmet: 'Navigator Visor', armour: null, insignia: 'First Deploy', booster: null },
+  // Standard frame and Circuit frame unlocked; the Nova Visor (a perk visor) is equipped
+  gear: {
+    frames: [
+      { rewardId: 20, code: 'frame-standard', name: 'Standard Issue', description: 'Issued to every pilot.', perk: null, earned: true },
+      { rewardId: 21, code: 'frame-circuit', name: 'Circuit', description: 'Clear 5 quests.', perk: null, earned: true },
+      { rewardId: 22, code: 'frame-hunter', name: 'Bug Hunter', description: 'Squash 10 bugs.', perk: null, earned: false },
+    ],
+    visors: [
+      { rewardId: 30, code: 'visor-standard', name: 'Standard Visor', description: 'Issued to every pilot.', perk: null, earned: true },
+      {
+        rewardId: 31,
+        code: 'visor-ember',
+        name: 'Ember Visor',
+        description: 'Deploy 3 days in a row.',
+        perk: 'Streak shield: one missed day a week won’t break your streak.',
+        earned: false,
+      },
+      {
+        rewardId: 32,
+        code: 'visor-nova',
+        name: 'Nova Visor',
+        description: 'Clear 10 quests.',
+        perk: '+10% XP on first-time quest clears.',
+        earned: true,
+      },
+    ],
+  },
+  loadout: {
+    frame: { rewardId: 20, code: 'frame-standard', name: 'Standard Issue' },
+    visor: { rewardId: 32, code: 'visor-nova', name: 'Nova Visor' },
+    insignia: 'First Deploy',
+    booster: null,
+  },
   boosters: [{ boosterId: 5, name: 'Overdrive Core', xpMultiplier: 2, chargesRemaining: 3, active: false }],
 };

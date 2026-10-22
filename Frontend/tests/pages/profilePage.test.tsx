@@ -79,9 +79,25 @@ describe('ProfilePage', () => {
     const { user, pilot } = renderRoute(<ProfilePage />);
     await screen.findByRole('heading', { level: 1, name: 'Vega-7' });
 
+    await user.click(screen.getByRole('button', { name: /^Booster/ }));
     await user.click(screen.getByRole('button', { name: /^Activate\s*Overdrive Core$/ }));
 
     expect(await screen.findByText('Running')).toBeInTheDocument();
+    expect(pilot.reload).toHaveBeenCalled();
+  });
+
+  it('equipping a frame from the Frame slot updates both avatars and the nav', async () => {
+    respond('get', '/profile/me', 200, { profile: PROFILE });
+    const circuit = { rewardId: 21, code: 'frame-circuit', name: 'Circuit' };
+    const save = respond('patch', '/profile/me', 200, { profile: { ...PROFILE, loadout: { ...PROFILE.loadout, frame: circuit } } });
+    const { user, pilot } = renderRoute(<ProfilePage />);
+    await screen.findByRole('heading', { level: 1, name: 'Vega-7' });
+
+    await user.click(screen.getByRole('button', { name: /^Frame/ }));
+    await user.click(within(screen.getByRole('dialog', { name: 'Frames' })).getByRole('button', { name: /^Circuit/ }));
+
+    expect(save[0]!.body).toEqual({ frameId: 21 });
+    await waitFor(() => expect(screen.getAllByRole('img', { name: 'Pilot avatar: Circuit frame, Nova Visor' })).toHaveLength(2));
     expect(pilot.reload).toHaveBeenCalled();
   });
 

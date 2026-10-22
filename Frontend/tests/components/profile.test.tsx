@@ -11,6 +11,9 @@ import SectorProgressPanel from '../../src/components/profile/SectorProgressPane
 import ServiceRecord from '../../src/components/profile/ServiceRecord';
 import StatTiles from '../../src/components/profile/StatTiles';
 import XpHistoryChart from '../../src/components/profile/XpHistoryChart';
+import PilotAvatar from '../../src/components/ui/PilotAvatar';
+import { updateProfile } from '../../src/services/profileService';
+import type { ProfileUpdate } from '../../src/types/profile';
 import { PROFILE } from '../helpers/fixtures';
 import { renderRoute } from '../helpers/render';
 import { respond } from '../helpers/server';
@@ -76,49 +79,212 @@ describe('ServiceRecord', () => {
 });
 
 describe('LoadoutPanel', () => {
-  it('shows each gear slot', () => {
-    render(<LoadoutPanel profile={PROFILE} onBoosterActivated={() => {}} />);
-    const slots = within(screen.getByRole('region', { name: 'Loadout' })).getAllByRole('listitem').slice(0, 4).map((li) => li.textContent);
+  const noEquip = async () => {};
 
-    expect(slots).toEqual(['HelmetNavigator Visor', 'ArmourEmpty', 'InsigniaFirst Deploy', 'BoosterEmpty']);
+  function renderLoadout(profile = PROFILE, onEquip: (update: ProfileUpdate) => Promise<void> = noEquip, onBoosterActivated = vi.fn()) {
+    render(<LoadoutPanel profile={profile} onBoosterActivated={onBoosterActivated} onEquip={onEquip} />);
+    return onBoosterActivated;
+  }
+
+  // Clicks a Loadout slot and returns the picker it opens
+  async function openSlot(slot: string, dialogName: string) {
+    await userEvent.click(screen.getByRole('button', { name: new RegExp(`^${slot}`) }));
+    return within(screen.getByRole('dialog', { name: dialogName }));
+  }
+
+  it('shows each slot, with the equipped visor’s perk', () => {
+    renderLoadout();
+    const slots = within(screen.getByRole('region', { name: 'Loadout' })).getAllByRole('listitem').map((li) => li.textContent);
+
+    expect(slots).toEqual([
+      'FrameStandard Issue',
+      'VisorNova Visor+10% XP on first-time quest clears.',
+      'InsigniaFirst Deploy',
+      'BoosterEmpty',
+    ]);
+    expect(screen.getByRole('img', { name: 'Pilot avatar: Standard Issue frame, Nova Visor' })).toBeInTheDocument();
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 
-  it('activates a booster', async () => {
-    const calls = respond('post', '/profile/me/boosters/5/activate', 200, { profile: PROFILE });
-    const onBoosterActivated = vi.fn();
-    render(<LoadoutPanel profile={PROFILE} onBoosterActivated={onBoosterActivated} />);
+  it.each([
+    ['Frame', 'Frames'],
+    ['Visor', 'Visors'],
+    ['Insignia', 'Title'],
+    ['Booster', 'Boosters'],
+  ])('the %s slot opens the %s picker, which closes again', async (slot, dialogName) => {
+    renderLoadout();
+    const picker = await openSlot(slot, dialogName);
 
-    expect(screen.getByText('2× XP · 3 quests')).toBeInTheDocument();
-    await userEvent.click(screen.getByRole('button', { name: /^Activate\s*Overdrive Core$/ }));
-
-    await vi.waitFor(() => expect(onBoosterActivated).toHaveBeenCalledWith(PROFILE));
-    expect(calls).toHaveLength(1);
+    await userEvent.click(picker.getByRole('button', { name: 'Close' }));
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 
-  it('shows why a booster couldn’t start', async () => {
-    respond('post', '/profile/me/boosters/5/activate', 409, { error: 'A booster is already running. Use it up first, Pilot.' });
-    render(<LoadoutPanel profile={PROFILE} onBoosterActivated={() => {}} />);
+  describe('frame and visor pickers', () => {
+    it('list each item with how to unlock it and its state', async () => {
+      renderLoadout();
+      const frames = await openSlot('Frame', 'Frames');
 
-    await userEvent.click(screen.getByRole('button', { name: /^Activate/ }));
-    expect(await screen.findByRole('alert')).toHaveTextContent('A booster is already running.');
+      expect(frames.getAllByRole('listitem').map((li) => li.textContent)).toEqual([
+        'Standard IssueIssued to every pilot.Equipped',
+        'CircuitClear 5 quests.Unlocked',
+        'Bug HunterSquash 10 bugs.Locked',
+      ]);
+      expect(frames.getByRole('button', { name: /^Standard Issue/ })).toHaveAttribute('aria-pressed', 'true');
+    });
+
+    it('show each visor’s perk', async () => {
+      renderLoadout();
+      const visors = await openSlot('Visor', 'Visors');
+
+      expect(visors.getByRole('button', { name: /^Ember Visor/ })).toHaveTextContent('Streak shield: one missed day a week won’t break your streak.');
+      expect(visors.getByRole('button', { name: /^Nova Visor/ })).toHaveAttribute('aria-pressed', 'true');
+    });
+
+    it('equip an unlocked frame', async () => {
+      const onEquip = vi.fn(async () => {});
+      renderLoadout(PROFILE, onEquip);
+      const frames = await openSlot('Frame', 'Frames');
+
+      await userEvent.click(frames.getByRole('button', { name: /^Circuit/ }));
+      expect(onEquip).toHaveBeenCalledWith({ frameId: 21 });
+      expect(await frames.findByRole('status')).toHaveTextContent('Circuit equipped.');
+    });
+
+    it('equip a visor and say what its perk does', async () => {
+      const onEquip = vi.fn(async () => {});
+      renderLoadout({ ...PROFILE, loadout: { ...PROFILE.loadout, visor: { rewardId: 30, code: 'visor-standard', name: 'Standard Visor' } } }, onEquip);
+      const visors = await openSlot('Visor', 'Visors');
+
+      await userEvent.click(visors.getByRole('button', { name: /^Nova Visor/ }));
+      expect(onEquip).toHaveBeenCalledWith({ visorId: 32 });
+      expect(await visors.findByRole('status')).toHaveTextContent('Nova Visor equipped. Perk: +10% XP on first-time quest clears.');
+    });
+
+    it('say how to unlock a locked item, and equip nothing', async () => {
+      const onEquip = vi.fn(async () => {});
+      renderLoadout(PROFILE, onEquip);
+      const visors = await openSlot('Visor', 'Visors');
+
+      await userEvent.click(visors.getByRole('button', { name: /^Ember Visor/ }));
+      expect(visors.getByRole('status')).toHaveTextContent('Ember Visor is locked. Deploy 3 days in a row.');
+      await userEvent.click(visors.getByRole('button', { name: /^Nova Visor/ }));
+      expect(visors.getByRole('status')).toHaveTextContent('Nova Visor is already equipped.');
+      expect(onEquip).not.toHaveBeenCalled();
+    });
+
+    it('show why equipping failed', async () => {
+      respond('patch', '/profile/me', 400, { error: 'Check the highlighted fields.', fields: { frameId: 'Choose a frame you have unlocked.' } });
+      renderLoadout(PROFILE, async (update) => {
+        await updateProfile(update);
+      });
+      const frames = await openSlot('Frame', 'Frames');
+
+      await userEvent.click(frames.getByRole('button', { name: /^Circuit/ }));
+      expect(await frames.findByRole('alert')).toHaveTextContent('Choose a frame you have unlocked.');
+    });
   });
 
-  it('runs one booster at a time', () => {
-    const boosters = [
-      { boosterId: 5, name: 'Overdrive Core', xpMultiplier: 2, chargesRemaining: 1, active: true },
-      { boosterId: 6, name: 'Spare Core', xpMultiplier: 1.5, chargesRemaining: 2, active: false },
-    ];
-    render(<LoadoutPanel profile={{ ...PROFILE, boosters }} onBoosterActivated={() => {}} />);
+  describe('title picker', () => {
+    it('lists earned insignia first and marks the current title', async () => {
+      renderLoadout();
+      const titles = await openSlot('Insignia', 'Title');
 
-    expect(screen.getByText('Running')).toBeInTheDocument();
-    expect(screen.getByText('2× XP · 1 quest')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /^Activate\s*Spare Core$/ })).toBeDisabled();
-    expect(screen.getByText(/One booster runs at a time/)).toBeInTheDocument();
+      expect(titles.getAllByRole('listitem').map((li) => li.textContent)).toEqual([
+        'First DeployClear your first quest.Your title',
+        'CommanderReach Commander.Earned',
+        'Bug HunterSquash 10 bugs.Locked',
+      ]);
+    });
+
+    it('sets an earned insignia as the title, or none', async () => {
+      const onEquip = vi.fn(async () => {});
+      renderLoadout(PROFILE, onEquip);
+      const titles = await openSlot('Insignia', 'Title');
+
+      await userEvent.click(titles.getByRole('button', { name: /^Commander/ }));
+      expect(onEquip).toHaveBeenCalledWith({ titleId: 8 });
+      expect(await titles.findByRole('status')).toHaveTextContent('Commander is now your title.');
+
+      await userEvent.click(titles.getByRole('button', { name: 'Show no title' }));
+      expect(onEquip).toHaveBeenLastCalledWith({ titleId: null });
+    });
+
+    it('says how to earn a locked insignia', async () => {
+      const onEquip = vi.fn(async () => {});
+      renderLoadout({ ...PROFILE, title: null }, onEquip);
+      const titles = await openSlot('Insignia', 'Title');
+
+      await userEvent.click(titles.getByRole('button', { name: /^Bug Hunter/ }));
+      expect(titles.getByRole('status')).toHaveTextContent('Bug Hunter isn’t earned yet. Squash 10 bugs.');
+      expect(titles.queryByRole('button', { name: 'Show no title' })).not.toBeInTheDocument();
+      expect(onEquip).not.toHaveBeenCalled();
+    });
   });
 
-  it('explains how to get a booster', () => {
-    render(<LoadoutPanel profile={{ ...PROFILE, boosters: [] }} onBoosterActivated={() => {}} />);
-    expect(screen.getByText('None yet. Some quests award a booster on their first clear.')).toBeInTheDocument();
+  describe('booster picker', () => {
+    it('activates a booster', async () => {
+      const calls = respond('post', '/profile/me/boosters/5/activate', 200, { profile: PROFILE });
+      const onBoosterActivated = renderLoadout();
+      const boosters = await openSlot('Booster', 'Boosters');
+
+      expect(boosters.getByText('2× XP · 3 quests')).toBeInTheDocument();
+      await userEvent.click(boosters.getByRole('button', { name: /^Activate\s*Overdrive Core$/ }));
+
+      await vi.waitFor(() => expect(onBoosterActivated).toHaveBeenCalledWith(PROFILE));
+      expect(calls).toHaveLength(1);
+    });
+
+    it('shows why a booster couldn’t start', async () => {
+      respond('post', '/profile/me/boosters/5/activate', 409, { error: 'A booster is already running. Use it up first, Pilot.' });
+      renderLoadout();
+      const boosters = await openSlot('Booster', 'Boosters');
+
+      await userEvent.click(boosters.getByRole('button', { name: /^Activate/ }));
+      expect(await boosters.findByRole('alert')).toHaveTextContent('A booster is already running.');
+    });
+
+    it('runs one booster at a time', async () => {
+      const boosters = [
+        { boosterId: 5, name: 'Overdrive Core', xpMultiplier: 2, chargesRemaining: 1, active: true },
+        { boosterId: 6, name: 'Spare Core', xpMultiplier: 1.5, chargesRemaining: 2, active: false },
+      ];
+      renderLoadout({ ...PROFILE, boosters, loadout: { ...PROFILE.loadout, booster: 'Overdrive Core' } });
+      const picker = await openSlot('Booster', 'Boosters');
+
+      expect(picker.getByText('Running')).toBeInTheDocument();
+      expect(picker.getByText('2× XP · 1 quest')).toBeInTheDocument();
+      expect(picker.getByRole('button', { name: /^Activate\s*Spare Core$/ })).toBeDisabled();
+      expect(picker.getByText(/One booster runs at a time/)).toBeInTheDocument();
+    });
+
+    it('explains how to get a booster', async () => {
+      renderLoadout({ ...PROFILE, boosters: [] });
+      const boosters = await openSlot('Booster', 'Boosters');
+      expect(boosters.getByText('None yet. Some quests award a booster on their first clear.')).toBeInTheDocument();
+    });
+  });
+});
+
+describe('PilotAvatar', () => {
+  it('names the frame and visor, using the Standard ones when nothing is equipped', () => {
+    const { rerender } = render(<PilotAvatar frame={{ rewardId: 21, code: 'frame-circuit', name: 'Circuit' }} visor={null} />);
+    expect(screen.getByRole('img', { name: 'Pilot avatar: Circuit frame, Standard Visor' })).toBeInTheDocument();
+
+    rerender(<PilotAvatar />);
+    expect(screen.getByRole('img', { name: 'Pilot avatar: Standard Issue frame, Standard Visor' })).toBeInTheDocument();
+  });
+
+  it('tints the glass by visor, with the Standard look for an unknown code', () => {
+    const { container, rerender } = render(<PilotAvatar visor={{ rewardId: 31, code: 'visor-ember', name: 'Ember' }} />);
+    expect(container.querySelector('svg')).toHaveClass('text-swarm');
+
+    rerender(<PilotAvatar visor={{ rewardId: 99, code: 'visor-new', name: 'New' }} />);
+    expect(container.querySelector('svg')).toHaveClass('text-accent');
+  });
+
+  it('can be hidden from screen readers', () => {
+    render(<PilotAvatar decorative />);
+    expect(screen.queryByRole('img')).not.toBeInTheDocument();
   });
 });
 

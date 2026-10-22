@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { app } from '../../src/app.js';
 import * as progress from '../../src/models/progressModel.js';
 import { sessionCookie } from '../helpers/auth.js';
-import { PILOT } from '../helpers/fixtures.js';
+import { PILOT, STANDARD_LOADOUT } from '../helpers/fixtures.js';
 
 // The signed-in pilot's progress: nav summary, Galaxy Map, Sector Map and rank
 
@@ -47,12 +47,19 @@ describe('GET /api/pilot/me', () => {
       questsCleared: 0,
       sectorsEnlisted: 0,
       currentStreak: 0,
-      loadout: { helmet: { rewardId: 0, name: 'Navigator Visor' } },
+      loadout: STANDARD_LOADOUT,
     });
   });
 
+  it('leaves out gear the database has no row for', async () => {
+    vi.mocked(progress.getPilotRow).mockResolvedValue({ totalXp: 0, titleName: null, frame: null, visor: null });
+    const res = await get('/api/pilot/me');
+
+    expect(res.body.loadout).toEqual({});
+  });
+
   it('works out the level from total XP (1,300 XP = level 3, 50 into it)', async () => {
-    vi.mocked(progress.getPilotRow).mockResolvedValue({ totalXp: 1300, titleName: null });
+    vi.mocked(progress.getPilotRow).mockResolvedValue({ totalXp: 1300, titleName: null, ...STANDARD_LOADOUT });
     const res = await get('/api/pilot/me');
 
     expect(res.body).toMatchObject({ level: 3, totalXp: 1300, levelXp: 50, levelXpRequired: 1000 });
@@ -69,7 +76,7 @@ describe('GET /api/pilot/me', () => {
   });
 
   it('shows the running booster and the chosen title', async () => {
-    vi.mocked(progress.getPilotRow).mockResolvedValue({ totalXp: 0, titleName: 'First Deploy' });
+    vi.mocked(progress.getPilotRow).mockResolvedValue({ totalXp: 0, titleName: 'First Deploy', ...STANDARD_LOADOUT });
     vi.mocked(progress.listBoosters).mockResolvedValue([
       { boosterId: 5, name: 'Overdrive Core', xpMultiplier: 2, chargesRemaining: 2, active: true },
     ]);

@@ -8,6 +8,7 @@ export type ProficiencyLevel = 'cadet' | 'pilot' | 'commander';
 // A piece of gear from the rewards table (reward_type = 'gear')
 export interface GearItem {
   rewardId: number;
+  code?: string; // picks a frame or visor's look (see components/ui/PilotAvatar.tsx)
   name: string;
 }
 
@@ -19,8 +20,8 @@ export interface ActiveBooster {
 }
 
 export interface PilotLoadout {
-  helmet?: GearItem;
-  armour?: GearItem;
+  frame?: GearItem;
+  visor?: GearItem;
   insignia?: GearItem;
 }
 

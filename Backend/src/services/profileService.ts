@@ -1,20 +1,23 @@
 import {
   findProfile,
   listFeaturedIds,
+  listGear,
   listInsignia,
   saveProfile,
-  type InsigniaRecord,
+  STANDARD_GEAR,
+  type GearRecord,
+  type GearSlot,
   updateUsername,
   usernameTakenByOther,
   type ProfileChanges,
 } from '../models/profileModel.js';
+import { unlockAllGear } from '../config/progress.js';
 import { countDecodes } from '../models/decoderModel.js';
-import { activateBooster, countAiQuestions, countCorrectAnswersByType } from '../models/progressModel.js';
+import { activateBooster, countAiQuestions, countCorrectAnswersByType, type EquippedGear } from '../models/progressModel.js';
 import { SIGN_IN_MESSAGE } from '../middleware/requireAuth.js';
 import type { ChallengeType, Proficiency } from '../types/content.js';
 import { verifyPassword } from './authService.js';
 import {
-  DEMO_HELMET,
   loadFlightLog,
   loadPilotCore,
   loadXpHistory,
@@ -45,6 +48,16 @@ export interface SectorProgress {
   proficiencyLevel: Proficiency;
 }
 
+// A frame or visor the pilot can pick in their Loadout
+export interface GearOption {
+  rewardId: number;
+  code: string; // picks its look on the frontend
+  name: string;
+  description: string; // how to unlock it
+  perk: string | null; // what a perk visor does, in plain words
+  earned: boolean;
+}
+
 export interface Booster {
   boosterId: number;
   name: string;
@@ -73,7 +86,8 @@ export interface PilotProfile {
   favouriteObjective: string | null; // null until the pilot has cleared an objective
   insignia: Insignia[];
   featuredIds: number[]; // in slot order
-  loadout: { helmet: string | null; armour: string | null; insignia: string | null; booster: string | null };
+  gear: { frames: GearOption[]; visors: GearOption[] };
+  loadout: { frame: EquippedGear | null; visor: EquippedGear | null; insignia: string | null; booster: string | null };
   boosters: Booster[]; // owned, with charges left; the running one first
 }
 
@@ -94,32 +108,47 @@ function isEarned(condition: string, stats: Map<string, number>): boolean {
   return value !== undefined && value >= Number(match[2]);
 }
 
-// The insignia list only changes when content is added, so it's kept for a
-// minute instead of being queried on every request. Simultaneous requests
-// share one load. (Sectors come from the cached quest catalogue.)
-const INSIGNIA_TTL_MS = 60 * 1000;
-let insigniaCache: { insignia: InsigniaRecord[]; loadedAt: number } | null = null;
-let insigniaLoading: Promise<InsigniaRecord[]> | null = null;
+// The insignia and gear lists only change when content is added, so each is
+// kept for a minute instead of being queried on every request. Simultaneous
+// requests share one load. (Sectors come from the cached quest catalogue.)
+const REWARDS_TTL_MS = 60 * 1000;
 
-async function loadInsignia(): Promise<InsigniaRecord[]> {
-  if (insigniaCache && Date.now() - insigniaCache.loadedAt < INSIGNIA_TTL_MS) return insigniaCache.insignia;
-  insigniaLoading ??= listInsignia()
-    .then((insignia) => {
-      insigniaCache = { insignia, loadedAt: Date.now() };
-      return insignia;
-    })
-    .finally(() => {
-      insigniaLoading = null;
-    });
-  return insigniaLoading;
+function cachedForAMinute<T>(load: () => Promise<T>): () => Promise<T> {
+  let cache: { value: T; loadedAt: number } | null = null;
+  let loading: Promise<T> | null = null;
+  return async () => {
+    if (cache && Date.now() - cache.loadedAt < REWARDS_TTL_MS) return cache.value;
+    loading ??= load()
+      .then((value) => {
+        cache = { value, loadedAt: Date.now() };
+        return value;
+      })
+      .finally(() => {
+        loading = null;
+      });
+    return loading;
+  };
+}
+
+const loadInsignia = cachedForAMinute(listInsignia);
+const loadGear = cachedForAMinute(listGear);
+
+// Shown with each perk visor, built from its perk and multiplier
+function perkLabel(gear: GearRecord): string | null {
+  if (gear.perk === 'streak_shield') return 'Streak shield: one missed day a week won’t break your streak.';
+  if (gear.perk === 'xp_bonus' && gear.xpMultiplier) {
+    return `+${Math.round((gear.xpMultiplier - 1) * 100)}% XP on first-time quest clears.`;
+  }
+  return null;
 }
 
 // Loads the pilot's account and progress, and works out what they've earned
 async function loadPilot(userId: number) {
-  const [record, featuredIds, catalogue, core, flightLog, xpHistory, answersByType, aiQuestions, decodes] = await Promise.all([
+  const [record, featuredIds, catalogue, gearCatalogue, core, flightLog, xpHistory, answersByType, aiQuestions, decodes] = await Promise.all([
     findProfile(userId),
     listFeaturedIds(userId),
     loadInsignia(),
+    loadGear(),
     loadPilotCore(userId),
     loadFlightLog(userId),
     loadXpHistory(userId),
@@ -162,6 +191,16 @@ async function loadPilot(userId: number) {
   }));
   const earnedIds = new Set(insignia.filter((i) => i.earned).map((i) => i.rewardId));
 
+  const gear: (GearOption & { slot: GearSlot })[] = gearCatalogue.map((g) => ({
+    rewardId: g.rewardId,
+    code: g.code,
+    name: g.name,
+    description: g.description,
+    slot: g.slot,
+    perk: perkLabel(g),
+    earned: unlockAllGear() || isEarned(g.unlockCondition, unlockStats),
+  }));
+
   // Most-cleared objective type, and the sector with the most XP
   // (briefings are only read, so they don't count)
   const favourite = [...answersByType.entries()]
@@ -178,6 +217,7 @@ async function loadPilot(userId: number) {
     stats,
     insignia,
     earnedIds,
+    gear,
     featuredIds,
     favouriteObjective: favourite ? OBJECTIVE_LABELS[favourite] : null,
     homeSector: home ? (core.catalog.sectorById.get(home.languageId)?.displayName ?? null) : null,
@@ -196,6 +236,14 @@ function toProfile(pilot: LoadedPilot): PilotProfile {
   // A title or featured insignia only shows while it's still earned
   const titleInsignia = insignia.find((i) => i.rewardId === record.titleRewardId && i.earned);
   const title = titleInsignia ? { rewardId: titleInsignia.rewardId, code: titleInsignia.code, name: titleInsignia.name } : null;
+
+  // The same goes for gear: an item no longer earned gives way to the slot's Standard one
+  const options = (slot: GearSlot) => pilot.gear.filter((g) => g.slot === slot).map(({ slot: _slot, ...option }) => option);
+  const equipped = (slot: GearSlot, rewardId: number | null): EquippedGear | null => {
+    const earned = options(slot).filter((g) => g.earned);
+    const item = earned.find((g) => g.rewardId === rewardId) ?? earned.find((g) => g.code === STANDARD_GEAR[slot]);
+    return item ? { rewardId: item.rewardId, code: item.code, name: item.name } : null;
+  };
 
   return {
     callsign: record.username,
@@ -216,8 +264,13 @@ function toProfile(pilot: LoadedPilot): PilotProfile {
     favouriteObjective: pilot.favouriteObjective,
     insignia,
     featuredIds: featuredIds.filter((id) => earnedIds.has(id)),
-    // Helmet is DUMMY gear until the loadout screen exists
-    loadout: { helmet: DEMO_HELMET, armour: null, insignia: title?.name ?? null, booster: core.activeBooster?.name ?? null },
+    gear: { frames: options('frame'), visors: options('visor') },
+    loadout: {
+      frame: equipped('frame', record.frameRewardId),
+      visor: equipped('visor', record.visorRewardId),
+      insignia: title?.name ?? null,
+      booster: core.activeBooster?.name ?? null,
+    },
     boosters: core.boosters,
   };
 }
@@ -235,6 +288,8 @@ export interface ProfileUpdate {
   bio?: string; // '' clears it
   titleId?: number | null;
   goalLanguageId?: number | null;
+  frameId?: number | null; // null goes back to the Standard item
+  visorId?: number | null;
   featuredIds?: number[];
 }
 
@@ -254,15 +309,27 @@ export async function updateProfile(userId: number, update: ProfileUpdate): Prom
   if (update.goalLanguageId != null && !sectors.some((s) => s.languageId === update.goalLanguageId)) {
     fields.goalLanguageId = 'Choose a sector from the list.';
   }
+  const canEquip = (slot: GearSlot, id: number) => pilot.gear.some((g) => g.rewardId === id && g.slot === slot && g.earned);
+  if (update.frameId != null && !canEquip('frame', update.frameId)) {
+    fields.frameId = 'Choose a frame you have unlocked.';
+  }
+  if (update.visorId != null && !canEquip('visor', update.visorId)) {
+    fields.visorId = 'Choose a visor you have unlocked.';
+  }
   if (Object.keys(fields).length > 0) throw new HttpError(400, 'Check the highlighted fields.', fields);
 
   const changes: ProfileChanges = {
     bio: update.bio === undefined ? undefined : update.bio || null,
     titleRewardId: update.titleId,
     goalLanguageId: update.goalLanguageId,
+    frameRewardId: update.frameId,
+    visorRewardId: update.visorId,
     featuredIds: update.featuredIds,
   };
   await saveProfile(userId, changes);
+
+  // A new visor can switch the streak shield on or off, which changes the flight log
+  if (update.visorId !== undefined) return buildProfile(userId);
 
   // Only the saved rows changed: re-read those rather than loading everything again
   const [record, featuredIds] = await Promise.all([findProfile(userId), listFeaturedIds(userId)]);

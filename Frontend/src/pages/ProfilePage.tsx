@@ -14,7 +14,7 @@ import { useApiRequest } from '../hooks/useApiRequest';
 import { useAuth } from '../hooks/useAuth';
 import { usePilot } from '../hooks/usePilot';
 import { getMyProfile, updateProfile } from '../services/profileService';
-import type { PilotProfile } from '../types/profile';
+import type { PilotProfile, ProfileUpdate } from '../types/profile';
 
 const pageClasses = 'mx-auto grid max-w-[90rem] gap-6 px-4 py-6 sm:px-6 lg:grid-cols-[17rem_minmax(0,1fr)]';
 
@@ -62,6 +62,15 @@ export default function ProfilePage() {
     [replace],
   );
 
+  // The Galaxy Map shows the avatar (and a visor can change the streak), so it refreshes too
+  const handleEquip = useCallback(
+    async (update: ProfileUpdate) => {
+      replace(await updateProfile(update));
+      refreshPilot();
+    },
+    [replace, refreshPilot],
+  );
+
   // The nav and Galaxy Map show the running booster, so they refresh too
   const handleBoosterActivated = useCallback(
     (updated: PilotProfile) => {
@@ -95,7 +104,7 @@ export default function ProfilePage() {
       </div>
 
       <div className="flex flex-col gap-6">
-        <LoadoutPanel profile={profile} onBoosterActivated={handleBoosterActivated} />
+        <LoadoutPanel profile={profile} onBoosterActivated={handleBoosterActivated} onEquip={handleEquip} />
         <ServiceRecord profile={profile} onChangeGoal={() => setEditing('goal')} />
       </div>
 

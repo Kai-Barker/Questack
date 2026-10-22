@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import * as progress from '../../../src/models/progressModel.js';
 import { changeRank, loadFlightLog, loadPilotCore, loadXpHistory } from '../../../src/services/progressService.js';
 import { HttpError } from '../../../src/utils/httpError.js';
+import { STANDARD_LOADOUT } from '../../helpers/fixtures.js';
 
 // Days and weeks run on South African time (UTC+2). The clock is frozen at
 // Thursday 8 October 2026, 12:00 in South Africa, unless a test moves it.
@@ -62,6 +63,48 @@ describe('loadFlightLog', () => {
     expect(log).toMatchObject({ longestStreak: 4, currentStreak: 1, activeDays: 5 });
   });
 
+  describe('with the streak shield visor equipped', () => {
+    const shield = () => vi.mocked(progress.findVisorPerk).mockResolvedValue({ name: 'Ember Visor', perk: 'streak_shield', xpMultiplier: null });
+
+    // This week runs Monday 5 to Sunday 11 October; today is Thursday 8
+    it('bridges one missed day this week without counting it', async () => {
+      shield();
+      activity({ '2026-10-08': 1, '2026-10-06': 1, '2026-10-05': 1 });
+      expect((await loadFlightLog(7)).currentStreak).toBe(3);
+    });
+
+    it('keeps the streak when yesterday was missed too', async () => {
+      shield();
+      activity({ '2026-10-06': 1, '2026-10-05': 1 });
+      expect((await loadFlightLog(7)).currentStreak).toBe(2);
+    });
+
+    it('breaks on a second missed day in the same week', async () => {
+      shield();
+      activity({ '2026-10-08': 1, '2026-10-07': 0, '2026-10-06': 1, '2026-10-05': 0, '2026-10-04': 1 });
+      expect((await loadFlightLog(7)).currentStreak).toBe(2);
+    });
+
+    it('bridges one missed day in each week', async () => {
+      shield();
+      // Missed Wednesday 7 (this week) and Thursday 1 (last week)
+      activity({ '2026-10-08': 1, '2026-10-06': 1, '2026-10-05': 1, '2026-10-04': 1, '2026-10-03': 1, '2026-10-02': 1, '2026-09-30': 1 });
+      expect((await loadFlightLog(7)).currentStreak).toBe(7);
+    });
+
+    it('never shields the longest streak', async () => {
+      shield();
+      activity({ '2026-10-08': 1, '2026-10-06': 1 });
+      expect(await loadFlightLog(7)).toMatchObject({ currentStreak: 2, longestStreak: 1 });
+    });
+
+    it('does nothing for a visor with another perk', async () => {
+      vi.mocked(progress.findVisorPerk).mockResolvedValue({ name: 'Nova Visor', perk: 'xp_bonus', xpMultiplier: 1.1 });
+      activity({ '2026-10-08': 1, '2026-10-06': 1 });
+      expect((await loadFlightLog(7)).currentStreak).toBe(1);
+    });
+  });
+
   it.each([
     ['21:59 UTC is still the same day in South Africa', '2026-10-07T21:59:00Z', '2026-10-07'],
     ['22:00 UTC is already the next day in South Africa', '2026-10-07T22:00:00Z', '2026-10-08'],
@@ -93,7 +136,7 @@ describe('loadXpHistory', () => {
 
 describe('loadPilotCore', () => {
   it('combines the catalogue with the pilot’s rows', async () => {
-    vi.mocked(progress.getPilotRow).mockResolvedValue({ totalXp: 750, titleName: 'First Deploy' });
+    vi.mocked(progress.getPilotRow).mockResolvedValue({ totalXp: 750, titleName: 'First Deploy', ...STANDARD_LOADOUT });
     vi.mocked(progress.listClearedQuests).mockResolvedValue([{ questId: 1, lastCompletedAt: NOW }]);
     vi.mocked(progress.listLanguageProgress).mockResolvedValue([{ languageId: 1, proficiency: 'pilot', languageXp: 100 }]);
     vi.mocked(progress.listBoosters).mockResolvedValue([

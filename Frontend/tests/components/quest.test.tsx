@@ -530,6 +530,19 @@ describe('QuestDebriefModal', () => {
     expect(within(dialog).getByText('Nice work.')).toBeInTheDocument();
   });
 
+  it('shows an XP visor’s bonus next to the booster', () => {
+    renderDebrief({
+      ...COMPLETION,
+      booster: { name: 'Overdrive Core', xpMultiplier: 2 },
+      visor: { name: 'Nova Visor', xpMultiplier: 1.1 },
+      xpEarned: 220,
+    });
+
+    expect(screen.getByText('Overdrive Core 2×')).toBeInTheDocument();
+    expect(screen.getByText('Nova Visor +10%')).toBeInTheDocument();
+    expect(screen.getByText('+220 XP')).toBeInTheDocument();
+  });
+
   it('marks a replay', () => {
     renderDebrief({ ...COMPLETION, replay: true, xpEarned: 25, unlocked: [], boosterEarned: undefined });
 

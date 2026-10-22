@@ -1,6 +1,7 @@
 import { ACTIVITY_UTC_OFFSET_MS, FLIGHT_LOG_WEEKS, XP_HISTORY_WEEKS } from '../config/progress.js';
 import {
   countActivityByDay,
+  findVisorPerk,
   getPilotRow,
   listBoosters,
   listClearedQuests,
@@ -9,6 +10,7 @@ import {
   setProficiency,
   sumXpByWeek,
   type BoosterRecord,
+  type EquippedGear,
   type LanguageProgress,
 } from '../models/progressModel.js';
 import type { Proficiency } from '../types/content.js';
@@ -22,9 +24,6 @@ import { getCatalog, questState, type Catalog, type CatalogQuest } from './quest
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const RANK_ORDER: Proficiency[] = ['cadet', 'pilot', 'commander'];
-
-// DUMMY gear for the avatar until the loadout screen exists
-export const DEMO_HELMET = 'Navigator Visor';
 
 // ---------------------------------------------------------------------
 // Local (South African) calendar days, for streaks and the flight log.
@@ -54,7 +53,10 @@ export interface FlightLog {
   longestStreak: number;
 }
 
-function streaks(days: FlightLogDay[]) {
+// `days` starts on a Monday. With a streak shield, the current streak survives
+// one missed day per Mon-Sun week (the day doesn't add to it). The longest
+// streak is never shielded, so streak unlocks still need real days in a row.
+function streaks(days: FlightLogDay[], shield = false) {
   let longest = 0;
   let run = 0;
   for (const day of days) {
@@ -65,8 +67,12 @@ function streaks(days: FlightLogDay[]) {
   let current = 0;
   let i = days.length - 1;
   if (days[i]?.count === 0) i--;
-  while (i >= 0 && (days[i]?.count ?? 0) > 0) {
-    current++;
+  const shieldedWeeks = new Set<number>();
+  while (i >= 0) {
+    const week = Math.floor(i / 7);
+    if ((days[i]?.count ?? 0) > 0) current++;
+    else if (shield && !shieldedWeeks.has(week)) shieldedWeeks.add(week);
+    else break;
     i--;
   }
   return { activeDays: days.filter((day) => day.count > 0).length, currentStreak: current, longestStreak: longest };
@@ -76,10 +82,10 @@ function streaks(days: FlightLogDay[]) {
 export async function loadFlightLog(userId: number): Promise<FlightLog> {
   const { today, thisMonday } = localCalendar();
   const start = thisMonday - (FLIGHT_LOG_WEEKS - 1) * 7 * DAY_MS;
-  const counts = await countActivityByDay(userId, toInstant(start));
+  const [counts, visor] = await Promise.all([countActivityByDay(userId, toInstant(start)), findVisorPerk(userId)]);
   const days: FlightLogDay[] = [];
   for (let t = start; t <= today; t += DAY_MS) days.push({ date: isoDate(t), count: counts.get(isoDate(t)) ?? 0 });
-  return { days, ...streaks(days) };
+  return { days, ...streaks(days, visor?.perk === 'streak_shield') };
 }
 
 export interface XpWeek {
@@ -105,6 +111,8 @@ export interface PilotCore {
   totalXp: number;
   level: LevelSnapshot;
   titleName: string | null;
+  frame: EquippedGear | null;
+  visor: EquippedGear | null;
   cleared: Map<number, Date>; // questId -> last cleared
   clearedIds: Set<number>;
   languages: Map<number, LanguageProgress>;
@@ -132,6 +140,8 @@ export async function loadPilotCore(userId: number): Promise<PilotCore> {
     totalXp: pilot.totalXp,
     level: levelFromXp(pilot.totalXp),
     titleName: pilot.titleName,
+    frame: pilot.frame,
+    visor: pilot.visor,
     cleared,
     clearedIds: new Set(cleared.keys()),
     languages,
@@ -161,8 +171,10 @@ export async function pilotSummary(userId: number, callsign: string) {
     activeBooster: booster
       ? { name: booster.name, xpMultiplier: booster.xpMultiplier, questsRemaining: booster.chargesRemaining }
       : undefined,
+    // Like the title, equipped gear was checked when it was saved
     loadout: {
-      helmet: { rewardId: 0, name: DEMO_HELMET },
+      ...(core.frame && { frame: core.frame }),
+      ...(core.visor && { visor: core.visor }),
       ...(core.titleName && { insignia: { rewardId: 0, name: core.titleName } }),
     },
   };

@@ -81,6 +81,35 @@ describe('completeQuest XP', () => {
     expect((await completeQuest(7, 3)).xpEarned).toBe(75);
   });
 
+  it('multiplies a booster with an XP visor (2 × 1.1 × 50 = 110) and reports both', async () => {
+    readyToCompleteSideQuest();
+    vi.mocked(progress.findActiveBooster).mockResolvedValue({ boosterId: 1, name: 'Overdrive Core', xpMultiplier: 2 });
+    vi.mocked(progress.findVisorPerk).mockResolvedValue({ name: 'Nova Visor', perk: 'xp_bonus', xpMultiplier: 1.1 });
+    const result = await completeQuest(7, 3);
+
+    expect(result.xpEarned).toBe(110);
+    expect(result).toMatchObject({ booster: { name: 'Overdrive Core' }, visor: { name: 'Nova Visor', xpMultiplier: 1.1 } });
+  });
+
+  it('gives no visor bonus on a replay', async () => {
+    readyToCompleteSideQuest();
+    vi.mocked(progress.hasCompletedQuest).mockResolvedValue(true);
+    vi.mocked(progress.findVisorPerk).mockResolvedValue({ name: 'Nova Visor', perk: 'xp_bonus', xpMultiplier: 1.1 });
+    const result = await completeQuest(7, 3);
+
+    expect(result.xpEarned).toBe(13);
+    expect(result).not.toHaveProperty('visor');
+  });
+
+  it('gives no XP bonus for a streak shield visor', async () => {
+    readyToCompleteSideQuest();
+    vi.mocked(progress.findVisorPerk).mockResolvedValue({ name: 'Ember Visor', perk: 'streak_shield', xpMultiplier: null });
+    const result = await completeQuest(7, 3);
+
+    expect(result.xpEarned).toBe(50);
+    expect(result).not.toHaveProperty('visor');
+  });
+
   it('grants no booster for a quest without one', async () => {
     readyToCompleteSideQuest();
     const result = await completeQuest(7, 3);

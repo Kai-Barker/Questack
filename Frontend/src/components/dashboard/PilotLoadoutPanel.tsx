@@ -2,6 +2,7 @@ import { Link } from 'react-router';
 import type { GearItem, PilotSummary } from '../../types/pilot';
 import ChamferFrame from '../ui/ChamferFrame';
 import Panel from '../ui/Panel';
+import PilotAvatar from '../ui/PilotAvatar';
 import { BoltIcon, ChevronRightIcon } from '../ui/icons';
 
 function GearSlot({ slot, item }: { slot: string; item?: GearItem }) {
@@ -28,15 +29,10 @@ export default function PilotLoadoutPanel({ pilot }: { pilot: PilotSummary }) {
     <Panel label="Pilot">
       {loadout && (
         <div className="mt-4 grid grid-cols-[6.5rem_1fr] gap-3">
-          <ChamferFrame
-            size="md"
-            innerClassName="grid min-h-32 place-items-center bg-space-950 font-display text-xs tracking-[0.2em] text-muted uppercase"
-          >
-            Avatar
-          </ChamferFrame>
+          <PilotAvatar frame={loadout.frame} visor={loadout.visor} shape="md" className="min-h-32" />
           <div className="flex flex-col gap-2">
-            <GearSlot slot="Helmet" item={loadout.helmet} />
-            <GearSlot slot="Armour" item={loadout.armour} />
+            <GearSlot slot="Frame" item={loadout.frame} />
+            <GearSlot slot="Visor" item={loadout.visor} />
             <GearSlot slot="Insignia" item={loadout.insignia} />
           </div>
         </div>

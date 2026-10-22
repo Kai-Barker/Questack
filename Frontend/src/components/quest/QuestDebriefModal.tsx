@@ -44,7 +44,7 @@ export default function QuestDebriefModal({ quest, objectives, completion, debri
 
   useModalDialog(dialogRef);
 
-  const { before, after, booster, boosterEarned } = completion;
+  const { before, after, booster, visor, boosterEarned } = completion;
   const levelledUp = after.level > before.level;
   // Bar: existing progress in cyan, this quest's XP in green (all green after a level-up)
   const existing = levelledUp ? 0 : percent(before.levelXp, after.levelXpRequired);
@@ -68,7 +68,7 @@ export default function QuestDebriefModal({ quest, objectives, completion, debri
             {quest.title} · {quest.sectorDisplayName} Sector
           </p>
           {completion.replay && (
-            <p className="mt-1 text-xs text-muted">Replays earn a quarter of the quest’s XP. Boosters only apply to first clears.</p>
+            <p className="mt-1 text-xs text-muted">Replays earn a quarter of the quest’s XP. Boosters and visor bonuses only apply to first clears.</p>
           )}
         </header>
 
@@ -104,6 +104,16 @@ export default function QuestDebriefModal({ quest, objectives, completion, debri
             >
               <BoltIcon />
               {booster.name} {booster.xpMultiplier}×
+            </ChamferFrame>
+          )}
+          {visor && (
+            <ChamferFrame
+              size="sm"
+              borderClassName="bg-buff/60"
+              innerClassName="flex items-center gap-1.5 bg-buff-deep px-3 py-1 font-display text-[0.65rem] font-semibold tracking-[0.15em] text-buff uppercase"
+            >
+              <BoltIcon />
+              {visor.name} +{Math.round((visor.xpMultiplier - 1) * 100)}%
             </ChamferFrame>
           )}
           <p className="font-display text-3xl font-bold text-buff">+{formatNumber(completion.xpEarned)} XP</p>

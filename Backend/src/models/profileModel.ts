@@ -11,6 +11,8 @@ interface ProfileRow extends RowDataPacket {
   bio: string | null;
   title_reward_id: number | null;
   goal_language_id: number | null;
+  frame_reward_id: number | null;
+  visor_reward_id: number | null;
 }
 
 interface RewardRow extends RowDataPacket {
@@ -28,6 +30,8 @@ export interface ProfileRecord {
   bio: string | null;
   titleRewardId: number | null;
   goalLanguageId: number | null;
+  frameRewardId: number | null;
+  visorRewardId: number | null;
 }
 
 export interface InsigniaRecord {
@@ -38,9 +42,22 @@ export interface InsigniaRecord {
   unlockCondition: string;
 }
 
+export type GearSlot = 'frame' | 'visor';
+export type GearPerk = 'streak_shield' | 'xp_bonus';
+
+// Shown in a slot when the pilot hasn't equipped anything there
+export const STANDARD_GEAR: Record<GearSlot, string> = { frame: 'frame-standard', visor: 'visor-standard' };
+
+export interface GearRecord extends InsigniaRecord {
+  slot: GearSlot;
+  perk: GearPerk | null;
+  xpMultiplier: number | null; // the xp_bonus perk's multiplier
+}
+
 export async function findProfile(userId: number): Promise<ProfileRecord | null> {
   const [rows] = await pool.execute<ProfileRow[]>(
-    'SELECT user_id, username, created_at, bio, title_reward_id, goal_language_id FROM users WHERE user_id = ? LIMIT 1',
+    `SELECT user_id, username, created_at, bio, title_reward_id, goal_language_id, frame_reward_id, visor_reward_id
+     FROM users WHERE user_id = ? LIMIT 1`,
     [userId],
   );
   const row = rows[0];
@@ -52,6 +69,8 @@ export async function findProfile(userId: number): Promise<ProfileRecord | null>
     bio: row.bio,
     titleRewardId: row.title_reward_id,
     goalLanguageId: row.goal_language_id,
+    frameRewardId: row.frame_reward_id,
+    visorRewardId: row.visor_reward_id,
   };
 }
 
@@ -68,6 +87,23 @@ export async function listInsignia(): Promise<InsigniaRecord[]> {
   }));
 }
 
+export async function listGear(): Promise<GearRecord[]> {
+  const [rows] = await pool.execute<RowDataPacket[]>(
+    `SELECT reward_id, code, name, description, unlock_condition, gear_slot, perk, xp_multiplier
+     FROM rewards WHERE reward_type = 'gear' AND gear_slot IS NOT NULL ORDER BY reward_id`,
+  );
+  return rows.map((row) => ({
+    rewardId: row.reward_id as number,
+    code: row.code as string,
+    name: row.name as string,
+    description: (row.description as string | null) ?? '',
+    unlockCondition: row.unlock_condition as string,
+    slot: row.gear_slot as GearSlot,
+    perk: row.perk as GearPerk | null,
+    xpMultiplier: row.xp_multiplier === null ? null : Number(row.xp_multiplier),
+  }));
+}
+
 // The pilot's featured insignia ids, in slot order
 export async function listFeaturedIds(userId: number): Promise<number[]> {
   const [rows] = await pool.execute<RowDataPacket[]>(
@@ -81,6 +117,8 @@ export interface ProfileChanges {
   bio?: string | null;
   titleRewardId?: number | null;
   goalLanguageId?: number | null;
+  frameRewardId?: number | null;
+  visorRewardId?: number | null;
   featuredIds?: number[];
 }
 
@@ -89,6 +127,8 @@ const EDITABLE_COLUMNS = {
   bio: 'bio',
   titleRewardId: 'title_reward_id',
   goalLanguageId: 'goal_language_id',
+  frameRewardId: 'frame_reward_id',
+  visorRewardId: 'visor_reward_id',
 } as const;
 
 // Saves every change together, or none of them

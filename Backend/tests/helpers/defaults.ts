@@ -10,7 +10,7 @@ import * as profiles from '../../src/models/profileModel.js';
 import * as progress from '../../src/models/progressModel.js';
 import * as questModel from '../../src/models/questModel.js';
 import * as users from '../../src/models/userModel.js';
-import { CATALOG_ROWS, INSIGNIA, PILOT, PROFILE_RECORD } from './fixtures.js';
+import { CATALOG_ROWS, GEAR, INSIGNIA, PILOT, PROFILE_RECORD, STANDARD_LOADOUT } from './fixtures.js';
 
 // What the fakes return unless a test says otherwise: a brand-new pilot with
 // no progress, signed in as PILOT, in the fixture galaxy. Applied before
@@ -64,6 +64,7 @@ export function applyDefaults() {
 
   vi.mocked(profiles.findProfile).mockResolvedValue({ ...PROFILE_RECORD });
   vi.mocked(profiles.listInsignia).mockResolvedValue(INSIGNIA);
+  vi.mocked(profiles.listGear).mockResolvedValue(GEAR);
   vi.mocked(profiles.listFeaturedIds).mockResolvedValue([]);
   vi.mocked(profiles.saveProfile).mockResolvedValue(undefined);
   vi.mocked(profiles.usernameTakenByOther).mockResolvedValue(false);
@@ -71,7 +72,8 @@ export function applyDefaults() {
 
   vi.mocked(questModel.loadCatalogRows).mockResolvedValue(CATALOG_ROWS);
 
-  vi.mocked(progress.getPilotRow).mockResolvedValue({ totalXp: 0, titleName: null });
+  vi.mocked(progress.getPilotRow).mockResolvedValue({ totalXp: 0, titleName: null, ...STANDARD_LOADOUT });
+  vi.mocked(progress.findVisorPerk).mockResolvedValue(null);
   vi.mocked(progress.listClearedQuests).mockResolvedValue([]);
   vi.mocked(progress.listOpenAttempts).mockResolvedValue([]);
   vi.mocked(progress.listLanguageProgress).mockResolvedValue([]);

@@ -1,7 +1,7 @@
 // Shapes for the /api/profile endpoints (Backend/src/routes/profileRoutes.ts).
 // The quest stats are demo values from the backend until quest results are stored.
 
-import type { ProficiencyLevel } from './pilot';
+import type { GearItem, ProficiencyLevel } from './pilot';
 
 // Limits the backend enforces (Backend/src/services/profileService.ts and
 // profileController.ts); shown here so the editor can match them
@@ -13,6 +13,16 @@ export interface Insignia {
   code: string; // picks the icon (see components/profile/InsigniaBadge.tsx)
   name: string;
   description: string;
+  earned: boolean;
+}
+
+// A frame or visor in the Loadout pickers
+export interface GearOption {
+  rewardId: number;
+  code: string; // picks its look (see components/ui/PilotAvatar.tsx)
+  name: string;
+  description: string; // how to unlock it
+  perk: string | null; // what a perk visor does
   earned: boolean;
 }
 
@@ -53,7 +63,9 @@ export interface PilotProfile {
   favouriteObjective: string | null; // null until the pilot has cleared an objective
   insignia: Insignia[];
   featuredIds: number[]; // in slot order, at most 3
-  loadout: { helmet: string | null; armour: string | null; insignia: string | null; booster: string | null };
+  gear: { frames: GearOption[]; visors: GearOption[] };
+  // The equipped frame and visor (the Standard ones unless the pilot picked others)
+  loadout: { frame: GearItem | null; visor: GearItem | null; insignia: string | null; booster: string | null };
   boosters: Booster[]; // owned, with charges left; the running one first
 }
 
@@ -70,5 +82,7 @@ export interface ProfileUpdate {
   bio?: string; // '' clears it
   titleId?: number | null;
   goalLanguageId?: number | null;
+  frameId?: number | null; // null goes back to the Standard item
+  visorId?: number | null;
   featuredIds?: number[];
 }

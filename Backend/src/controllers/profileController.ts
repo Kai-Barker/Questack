@@ -25,6 +25,8 @@ const updateBody = z
     bio: bio.optional(),
     titleId: id.nullable().optional(),
     goalLanguageId: id.nullable().optional(),
+    frameId: id.nullable().optional(),
+    visorId: id.nullable().optional(),
     featuredIds: z
       .array(id)
       .max(MAX_FEATURED, `Feature up to ${MAX_FEATURED} insignia.`)

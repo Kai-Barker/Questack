@@ -47,9 +47,10 @@ export interface LevelSnapshot {
 // What POST /api/quests/:id/complete returns: everything the Mission Debrief shows
 export interface QuestCompletion {
   baseXp: number;
-  xpEarned: number; // first clear: baseXp with any booster applied; replay: a share of it
+  xpEarned: number; // first clear: baseXp with any booster and visor bonus applied; replay: a share of it
   replay: boolean; // the pilot had cleared this quest before
   booster?: { name: string; xpMultiplier: number }; // the booster that boosted this clear
+  visor?: { name: string; xpMultiplier: number }; // an equipped XP-bonus visor
   boosterEarned?: { name: string }; // a new booster for the inventory
   before: LevelSnapshot;
   after: LevelSnapshot;

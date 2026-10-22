@@ -24,9 +24,9 @@ All of these run `appIpLimiter` (300/min per IP) first, then `requireAuth`. With
 | Method | Path | Body | Notes | Rate limit |
 |---|---|---|---|---|
 | GET | `/auth/me` | none | The signed-in account `{ userId, username, email, role }` | IP only |
-| GET | `/pilot/me` | none | Nav and dashboard summary: level, XP, rank, sectors enlisted, booster | 120/min per pilot |
-| GET | `/profile/me` | none | Full profile: stats, insignia, flight log, XP history, loadout | 120/min |
-| PATCH | `/profile/me` | `{ bio?, titleId?, goalLanguageId?, featuredIds? }` | Strict: any other field is rejected (e.g. `role`) | 20/15 min |
+| GET | `/pilot/me` | none | Nav and dashboard summary: level, XP, rank, sectors enlisted, booster, equipped frame and visor | 120/min per pilot |
+| GET | `/profile/me` | none | Full profile: stats, insignia, flight log, XP history, gear (frames and visors, each with `earned`), loadout | 120/min |
+| PATCH | `/profile/me` | `{ bio?, titleId?, goalLanguageId?, frameId?, visorId?, featuredIds? }` | Strict: any other field is rejected (e.g. `role`). Gear must be unlocked and in the right slot; `null` goes back to the Standard item. | 20/15 min |
 | PATCH | `/profile/me/callsign` | `{ callsign, password }` | Needs the current access code | 5/day |
 | POST | `/profile/me/boosters/:boosterId/activate` | none | Starts an owned booster | 30/15 min |
 
@@ -38,7 +38,7 @@ All of these run `appIpLimiter` (300/min per IP) first, then `requireAuth`. With
 | GET | `/sectors/:id` | none | One sector's quests with locked, available and cleared state. `404` if unknown. | 120/min |
 | PATCH | `/sectors/:id/rank` | `{ proficiencyLevel: "cadet" \| "pilot" \| "commander" }` | Sets the pilot's class in a sector, enlisting them if new (used by onboarding and settings). `204`. | 30/15 min |
 | GET | `/quests/:id` | none | A quest to play: objectives and code, never answer keys. `403` while locked. | 120/min |
-| POST | `/quests/:id/complete` | none | Clears the quest once every objective is answered correctly. Awards XP, levels and boosters. | 20/15 min |
+| POST | `/quests/:id/complete` | none | Clears the quest once every objective is answered correctly. Awards XP, levels and boosters. On a first clear, an equipped XP visor multiplies the XP with any booster and is returned as `visor: { name, xpMultiplier }`. | 20/15 min |
 
 ### Ship's AI (Gemini)
 

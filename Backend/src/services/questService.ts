@@ -6,6 +6,7 @@ import {
   createAttempt,
   findActiveBooster,
   findOpenAttemptId,
+  findVisorPerk,
   grantBooster,
   hasCompletedQuest,
   listAttemptClears,
@@ -199,11 +200,17 @@ export async function completeQuest(userId: number, questId: number) {
     }
 
     const replay = await hasCompletedQuest(userId, questId, connection);
-    // First clear: full XP, boosted. Replay: a share of it, never boosted.
+    // First clear: full XP, boosted by the booster and an XP visor (they
+    // multiply). Replay: a share of it, never boosted.
     const booster = replay ? null : await findActiveBooster(connection, userId);
+    const visorPerk = replay ? null : await findVisorPerk(userId, connection);
+    const visor =
+      visorPerk?.perk === 'xp_bonus' && visorPerk.xpMultiplier
+        ? { name: visorPerk.name, xpMultiplier: visorPerk.xpMultiplier }
+        : null;
     const xpEarned = replay
       ? Math.round(quest.xpReward * REPLAY_XP_SHARE)
-      : Math.round(quest.xpReward * (booster?.xpMultiplier ?? 1));
+      : Math.round(quest.xpReward * (booster?.xpMultiplier ?? 1) * (visor?.xpMultiplier ?? 1));
 
     const totalXpAfter = totalXpBefore + xpEarned;
     const after = levelFromXp(totalXpAfter);
@@ -213,7 +220,7 @@ export async function completeQuest(userId: number, questId: number) {
     const boosterEarned = !replay && quest.rewardId ? await grantBooster(connection, userId, quest.rewardId) : null;
 
     await connection.commit();
-    result = { replay, xpEarned, booster, boosterEarned, before: levelFromXp(totalXpBefore), after };
+    result = { replay, xpEarned, booster, visor, boosterEarned, before: levelFromXp(totalXpBefore), after };
   } catch (err) {
     await connection.rollback();
     throw err;
@@ -238,6 +245,7 @@ export async function completeQuest(userId: number, questId: number) {
     xpEarned: result.xpEarned,
     replay: result.replay,
     ...(result.booster && { booster: { name: result.booster.name, xpMultiplier: result.booster.xpMultiplier } }),
+    ...(result.visor && { visor: result.visor }),
     ...(result.boosterEarned && { boosterEarned: { name: result.boosterEarned } }),
     before: result.before,
     after: result.after,

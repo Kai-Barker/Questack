@@ -1,6 +1,6 @@
 import bcrypt from 'bcrypt';
 import type { ChallengeRow, LanguageRow, PrerequisiteRow, QuestRow } from '../../src/models/questModel.js';
-import type { InsigniaRecord, ProfileRecord } from '../../src/models/profileModel.js';
+import type { GearRecord, InsigniaRecord, ProfileRecord } from '../../src/models/profileModel.js';
 import type { UserWithHash } from '../../src/models/userModel.js';
 
 // A small, fixed galaxy used by every unit and endpoint test.
@@ -36,6 +36,8 @@ export const PROFILE_RECORD: ProfileRecord = {
   bio: 'Reading code across the stars.',
   titleRewardId: null,
   goalLanguageId: null,
+  frameRewardId: null,
+  visorRewardId: null,
 };
 
 const row = <T>(value: Omit<T, 'constructor'>) => value as T;
@@ -124,3 +126,30 @@ export const INSIGNIA: InsigniaRecord[] = [
   { rewardId: 3, code: 'broken-rule', name: 'Broken Rule', description: 'A rule with a typo.', unlockCondition: 'quests cleared > 1' },
   { rewardId: 8, code: 'commander', name: 'Commander', description: 'Reach Commander.', unlockCondition: 'commander_ranks>=1' },
 ];
+
+// Gear: a Standard frame and visor everyone has, a frame for veterans and two perk visors
+const gear = (rewardId: number, code: string, slot: GearRecord['slot'], unlockCondition: string, extra: Partial<GearRecord> = {}): GearRecord => ({
+  rewardId,
+  code,
+  name: code,
+  description: `Unlock ${code}.`,
+  unlockCondition,
+  slot,
+  perk: null,
+  xpMultiplier: null,
+  ...extra,
+});
+
+export const GEAR: GearRecord[] = [
+  gear(20, 'frame-standard', 'frame', 'quests_cleared>=0'),
+  gear(21, 'frame-hunter', 'frame', 'bugs_squashed>=10'),
+  gear(30, 'visor-standard', 'visor', 'quests_cleared>=0'),
+  gear(31, 'visor-ember', 'visor', 'quests_cleared>=1', { perk: 'streak_shield' }),
+  gear(32, 'visor-nova', 'visor', 'bugs_squashed>=10', { perk: 'xp_bonus', xpMultiplier: 1.1 }),
+];
+
+// What getPilotRow returns for a pilot who hasn't equipped anything
+export const STANDARD_LOADOUT = {
+  frame: { rewardId: 20, code: 'frame-standard', name: 'frame-standard' },
+  visor: { rewardId: 30, code: 'visor-standard', name: 'visor-standard' },
+};

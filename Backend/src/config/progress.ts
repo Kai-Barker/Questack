@@ -12,6 +12,10 @@ export const REPLAY_XP_SHARE = 0.25;
 export const ACTIVITY_UTC_OFFSET = '+02:00';
 export const ACTIVITY_UTC_OFFSET_MS = 2 * 60 * 60 * 1000;
 
+// Dev only: DEV_UNLOCK_ALL_GEAR=true in .env unlocks every frame and visor for
+// every pilot, to try them out. Ignored when NODE_ENV is production.
+export const unlockAllGear = () => process.env.DEV_UNLOCK_ALL_GEAR === 'true' && process.env.NODE_ENV !== 'production';
+
 // How far back the flight log and XP history look
 export const FLIGHT_LOG_WEEKS = 26;
 export const XP_HISTORY_WEEKS = 8;

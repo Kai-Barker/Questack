@@ -2,6 +2,7 @@ import type { PoolConnection, ResultSetHeader, RowDataPacket } from 'mysql2/prom
 import { pool } from '../config/db.js';
 import { ACTIVITY_UTC_OFFSET } from '../config/progress.js';
 import type { ChallengeType, Proficiency } from '../types/content.js';
+import { STANDARD_GEAR, type GearPerk } from './profileModel.js';
 
 // A pilot's progress. Every query is parameterised, scoped to one user_id
 // taken from the session, and grouped in SQL (never one query per quest).
@@ -11,15 +12,62 @@ import type { ChallengeType, Proficiency } from '../types/content.js';
 // Reads
 // ---------------------------------------------------------------------
 
-// Total XP and the name of the title the pilot has chosen (if any)
-export async function getPilotRow(userId: number): Promise<{ totalXp: number; titleName: string | null }> {
+export interface EquippedGear {
+  rewardId: number;
+  code: string;
+  name: string;
+}
+
+const toGear = (id: unknown, code: unknown, name: unknown): EquippedGear | null =>
+  id == null ? null : { rewardId: id as number, code: code as string, name: name as string };
+
+// Total XP, the name of the title the pilot has chosen (if any) and their
+// equipped frame and visor. With nothing equipped, the Standard item is used.
+export async function getPilotRow(
+  userId: number,
+): Promise<{ totalXp: number; titleName: string | null; frame: EquippedGear | null; visor: EquippedGear | null }> {
   const [rows] = await pool.execute<RowDataPacket[]>(
-    `SELECT u.total_xp, r.name AS title_name
-     FROM users u LEFT JOIN rewards r ON r.reward_id = u.title_reward_id
+    `SELECT u.total_xp, r.name AS title_name,
+            f.reward_id AS frame_id, f.code AS frame_code, f.name AS frame_name,
+            v.reward_id AS visor_id, v.code AS visor_code, v.name AS visor_name
+     FROM users u
+     LEFT JOIN rewards r ON r.reward_id = u.title_reward_id
+     LEFT JOIN rewards f ON f.reward_id = u.frame_reward_id OR (u.frame_reward_id IS NULL AND f.code = ?)
+     LEFT JOIN rewards v ON v.reward_id = u.visor_reward_id OR (u.visor_reward_id IS NULL AND v.code = ?)
      WHERE u.user_id = ?`,
+    [STANDARD_GEAR.frame, STANDARD_GEAR.visor, userId],
+  );
+  const row = rows[0];
+  return {
+    totalXp: (row?.total_xp as number | undefined) ?? 0,
+    titleName: (row?.title_name as string | null) ?? null,
+    frame: toGear(row?.frame_id, row?.frame_code, row?.frame_name),
+    visor: toGear(row?.visor_id, row?.visor_code, row?.visor_name),
+  };
+}
+
+export interface VisorPerk {
+  name: string;
+  perk: GearPerk;
+  xpMultiplier: number | null;
+}
+
+// The perk on the pilot's equipped visor, if it has one. Pass a connection
+// to read it inside a transaction.
+export async function findVisorPerk(userId: number, db: Pick<PoolConnection, 'execute'> = pool): Promise<VisorPerk | null> {
+  const [rows] = await db.execute<RowDataPacket[]>(
+    `SELECT r.name, r.perk, r.xp_multiplier
+     FROM users u JOIN rewards r ON r.reward_id = u.visor_reward_id
+     WHERE u.user_id = ? AND r.perk IS NOT NULL`,
     [userId],
   );
-  return { totalXp: (rows[0]?.total_xp as number | undefined) ?? 0, titleName: (rows[0]?.title_name as string | null) ?? null };
+  const row = rows[0];
+  if (!row) return null;
+  return {
+    name: row.name as string,
+    perk: row.perk as GearPerk,
+    xpMultiplier: row.xp_multiplier === null ? null : Number(row.xp_multiplier),
+  };
 }
 
 // Each quest the pilot has cleared, with when they last cleared it

@@ -46,8 +46,9 @@ describe('PilotLoadoutPanel', () => {
   it('shows the gear, callsign and a link to manage it', () => {
     renderRoute(<PilotLoadoutPanel pilot={PILOT} />);
 
-    expect(screen.getByText('Navigator Visor')).toBeInTheDocument();
-    expect(screen.getAllByText('empty')).toHaveLength(2);
+    expect(screen.getByRole('img', { name: 'Pilot avatar: Standard Issue frame, Nova Visor' })).toBeInTheDocument();
+    expect(screen.getByText('Nova Visor')).toBeInTheDocument();
+    expect(screen.getAllByText('empty')).toHaveLength(1); // no title chosen
     expect(screen.getByText('Vega-7')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /Manage loadout/ })).toHaveAttribute('href', '/profile');
   });
