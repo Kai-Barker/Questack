@@ -1,5 +1,5 @@
-// Adds a sector's curriculum (database/curriculum/) to the database, published.
-// Run with: npm run db:curriculum -- csharp --admin <username or email> [--dry-run]
+// Adds a sector's curriculum (database/curriculum_backup/) to the database, published.
+// Run with: npm run db:curriculum -- <csharp|javascript> --admin <username or email> [--dry-run]
 //
 // Each quest is saved exactly as the admin quest editor saves it (same
 // validation, same rules for prerequisites), in prerequisite order, and is
@@ -17,11 +17,12 @@ import { findQuest, listQuests, type AdminQuest } from '../src/models/adminQuest
 import { findByLogin } from '../src/models/userModel.js';
 import { saveQuest } from '../src/services/adminQuestService.js';
 import { HttpError } from '../src/utils/httpError.js';
-import { curriculumProblems, inPrerequisiteOrder, mapColumns, objectivesFor, questInput } from './curriculum/build.js';
-import { csharp } from './curriculum/csharp/index.js';
-import { isSeeded, type Curriculum } from './curriculum/types.js';
+import { curriculumProblems, inPrerequisiteOrder, mapColumns, objectivesFor, questInput } from './curriculum_backup/build.js';
+import { csharp } from './curriculum_backup/csharp/index.js';
+import { javascript } from './curriculum_backup/javascript/index.js';
+import { isSeeded, type Curriculum } from './curriculum_backup/types.js';
 
-const curricula: Record<string, Curriculum> = { csharp };
+const curricula: Record<string, Curriculum> = { csharp, javascript };
 
 const { values, positionals } = parseArgs({
   allowPositionals: true,

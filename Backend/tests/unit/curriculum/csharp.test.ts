@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { curriculumProblems, inPrerequisiteOrder, mapColumns, objectivesFor } from '../../../database/curriculum/build.js';
-import { csharp } from '../../../database/curriculum/csharp/index.js';
-import { isSeeded, type CurriculumQuest } from '../../../database/curriculum/types.js';
+import { curriculumProblems, inPrerequisiteOrder, mapColumns, objectivesFor } from '../../../database/curriculum_backup/build.js';
+import { csharp } from '../../../database/curriculum_backup/csharp/index.js';
+import { isSeeded, type CurriculumQuest } from '../../../database/curriculum_backup/types.js';
 import { quests as seedQuests } from '../../../database/seeds/questContent.js';
 import type { AdminObjective, AdminQuest } from '../../../src/models/adminQuestModel.js';
 
-// The C# curriculum (database/curriculum/csharp), checked without a database:
+// The C# curriculum (database/curriculum_backup/csharp), checked without a database:
 // the same rules the quest editor and the importer apply, plus its shape
 
 describe('the C# curriculum', () => {

@@ -69,9 +69,6 @@ function code(snippet: string): string {
   return snippet.replace(/^\n/, '').trimEnd();
 }
 
-const decodeInstructions = (language: string, topic: string) =>
-  `Intercepted transmission: paste a piece of ${language} code that ${topic}, such as something you found online or that an AI wrote for you. The Ship's AI will walk you through it section by section, then check your understanding. Don't paste confidential or company code.`;
-
 export const quests: SeedQuest[] = [
   // -------------------------------------------------------------------
   // C# Sector
@@ -767,10 +764,21 @@ console.log("Total fuel: " + total);
         altBugLines: [1],
       },
       {
-        type: 'decode_transmission',
-        instructions: decodeInstructions('JavaScript', 'works with a few different types of value (numbers, strings, booleans)'),
+        type: 'read_and_explain',
+        instructions:
+          'Read coercion.js. Explain what each of the five lines logs, and why the first two give such different results.',
+        fileName: 'coercion.js',
+        code: code(`
+console.log("5" * 2);
+console.log("5" + 2);
+console.log(Number("3.5") + 1);
+console.log(Number("three"));
+console.log(typeof Number("three"));
+`),
+        answerKey:
+          '* only works on numbers, so JavaScript quietly converts the text "5" to the number 5 and logs 10. + joins text whenever one side is a string, so "5" + 2 becomes the text "52". Number("3.5") turns the text into the number 3.5, so adding 1 logs 4.5. "three" is not a number, so Number("three") gives NaN ("not a number"). NaN is still of type number, so the last line logs "number".',
         markingCriteria:
-          'The pilot must explain in their own words what the pasted code does, including what kind of value its main variables hold. Judge against the pasted code itself. Reward genuine understanding; don’t require every detail.',
+          'Must give the five results (10, "52", 4.5, NaN, "number"); must explain that * converts the string to a number while + joins text when a string is involved; must explain that Number() converts text and gives NaN when the text is not a number.',
       },
     ],
   },
@@ -894,10 +902,32 @@ console.log(scanned + " sectors scanned");
         bugLineContains: 'i--',
       },
       {
-        type: 'decode_transmission',
-        instructions: decodeInstructions('JavaScript', 'uses a loop'),
+        type: 'read_and_explain',
+        instructions:
+          'Read sweep.js. Explain what for...of, continue and break each do here, and list everything that gets logged.',
+        fileName: 'sweep.js',
+        code: code(`
+const readings = [12, -1, 40, 0, 95, 7];
+let total = 0;
+
+for (const reading of readings) {
+  if (reading < 0) {
+    continue;
+  }
+  if (reading > 90) {
+    console.log("Overload! Stopping the sweep.");
+    break;
+  }
+  total += reading;
+  console.log("Logged " + reading);
+}
+
+console.log("Total: " + total);
+`),
+        answerKey:
+          'for...of visits each value in the array in order, without needing an index. continue skips the rest of the current pass, so the -1 is never logged or added. break leaves the loop completely, so when 95 is reached the overload message is logged and the 7 is never checked. It logs "Logged 12", "Logged 40", "Logged 0", "Overload! Stopping the sweep." and finally "Total: 52".',
         markingCriteria:
-          'The pilot must explain in their own words what the pasted code does overall, including what its loop repeats and when that loop stops. Judge against the pasted code itself. Reward genuine understanding; don’t require every detail.',
+          'Must explain that for...of visits each value in turn, continue skips the negative reading, and break stops the loop at 95 so 7 is never reached; must list the logs: 12, 40 and 0 logged, the overload message, then "Total: 52".',
       },
     ],
   },

@@ -5,7 +5,7 @@ import { objectiveProblems } from '../seeds/checks.js';
 import { quests as seedQuests, type SeedChallenge } from '../seeds/questContent.js';
 import { isSeeded, type Curriculum, type CurriculumQuest } from './types.js';
 
-// Turns a curriculum (database/curriculum/types.ts) into the same quest input
+// Turns a curriculum (database/curriculum_backup/types.ts) into the same quest input
 // the admin quest editor sends, and checks it, without touching the database.
 // database/importCurriculum.ts does the saving.
 
