@@ -21,7 +21,8 @@ function pick(lines: string[]): string {
   return lines[Math.floor(Math.random() * lines.length)] ?? lines[0] ?? '';
 }
 
-export function commsMessage(event: GenerateEvent): string {
+// Only retries and fallbacks get a loading line; a failed attempt is followed by one of them
+export function commsMessage(event: Exclude<GenerateEvent, { type: 'failed' }>): string {
   if (event.type === 'retry') {
     return `${pick(RETRY_MESSAGES)} (attempt ${event.attempt}/${event.maxAttempts})`;
   }

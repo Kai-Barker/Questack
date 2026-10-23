@@ -26,6 +26,14 @@ const labelStyles: Partial<Record<CommsTone, string>> = {
   retry: 'text-swarm',
 };
 
+// Questions to the AI ("what does const do?") and quick replies ("ok thanks")
+// aren't answers, so only longer statements are offered as one
+const MIN_ANSWER_WORDS = 6;
+function looksLikeAnswer(text: string): boolean {
+  const trimmed = text.trim();
+  return !trimmed.endsWith('?') && trimmed.split(/\s+/).length >= MIN_ANSWER_WORDS;
+}
+
 interface ShipsAiPanelProps {
   messages: CommsMessage[];
   busy: boolean;
@@ -34,9 +42,9 @@ interface ShipsAiPanelProps {
   explainAs: ProficiencyLevel;
   onExplainAsChange: (level: ProficiencyLevel) => void;
   onSend: (text: string) => void;
-  // Set while the current objective can be answered: offers to submit the
-  // pilot's latest message as their answer, for pilots who answer in the chat
-  onSubmitAsAnswer?: (text: string) => void;
+  // Set while the current objective can be answered: offers to add the
+  // pilot's latest message to their answer, for pilots who answer in the chat
+  onAddToAnswer?: (text: string) => void;
 }
 
 // Bottom-right pane: the Ship's AI mentor chat
@@ -48,9 +56,11 @@ export default function ShipsAiPanel({
   explainAs,
   onExplainAsChange,
   onSend,
-  onSubmitAsAnswer,
+  onAddToAnswer,
 }: ShipsAiPanelProps) {
   const [draft, setDraft] = useState('');
+  // The message last added to the answer, so it can't be added twice
+  const [addedId, setAddedId] = useState<number | null>(null);
   const logRef = useRef<HTMLOListElement>(null);
   const loadingLine = useLoadingLine(busy ? (waitKind ?? 'chat') : null);
   const lastPilotMessage = messages.findLast((m) => m.from === 'pilot' && m.tone === 'chat');
@@ -141,28 +151,37 @@ export default function ShipsAiPanel({
               )}
               {message.text}
             </div>
-            {message === lastPilotMessage && onSubmitAsAnswer && !busy && (
-              // Solid, like the send button, so pilots who answer here can't miss it
-              <div className="mt-2 flex items-center gap-3">
-                <span className="text-xs text-slate-300">Was this your answer?</span>
-                <button
-                  type="button"
-                  onClick={() => onSubmitAsAnswer(message.text)}
-                  className="group focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-                >
-                  <ChamferFrame
-                    as="span"
-                    size="sm"
-                    grow="sm"
-                    borderClassName="bg-accent group-hover:bg-accent-soft"
-                    innerClassName="flex items-center gap-2 bg-accent px-4 py-1.5 font-display text-xs font-semibold tracking-[0.15em] text-space-950 uppercase group-hover:bg-accent-soft"
+            {message === lastPilotMessage && onAddToAnswer && !busy && looksLikeAnswer(message.text) &&
+              (addedId === message.id ? (
+                <p className="mt-2 flex items-center gap-2 text-xs text-slate-300">
+                  <CheckIcon />
+                  Added to your answer
+                </p>
+              ) : (
+                // Solid, like the send button, so pilots who answer here can't miss it
+                <div className="mt-2 flex items-center gap-3">
+                  <span className="text-xs text-slate-300">Was this your answer?</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onAddToAnswer(message.text);
+                      setAddedId(message.id);
+                    }}
+                    className="group focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
                   >
-                    <CheckIcon />
-                    Submit as answer
-                  </ChamferFrame>
-                </button>
-              </div>
-            )}
+                    <ChamferFrame
+                      as="span"
+                      size="sm"
+                      grow="sm"
+                      borderClassName="bg-accent group-hover:bg-accent-soft"
+                      innerClassName="flex items-center gap-2 bg-accent px-4 py-1.5 font-display text-xs font-semibold tracking-[0.15em] text-space-950 uppercase group-hover:bg-accent-soft"
+                    >
+                      <CheckIcon />
+                      Add to answer
+                    </ChamferFrame>
+                  </button>
+                </div>
+              ))}
           </li>
         ))}
         {busy && (
@@ -186,7 +205,7 @@ export default function ShipsAiPanel({
           onChange={(e) => setDraft(e.target.value)}
           maxLength={2000}
           placeholder={
-            onSubmitAsAnswer ? "Ask the Ship's AI for guidance, or write your answer and submit it…" : "Ask the Ship's AI for guidance…"
+            onAddToAnswer ? "Ask the Ship's AI for guidance, or draft your answer here…" : "Ask the Ship's AI for guidance…"
           }
           className="min-w-0 flex-1 rounded-md border border-line bg-space-950 px-4 py-2.5 text-sm text-slate-100 placeholder:text-muted focus:border-accent/60 focus:outline-none"
         />

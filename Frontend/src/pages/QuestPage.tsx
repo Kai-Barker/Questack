@@ -97,7 +97,7 @@ function QuestScreen({ quest }: { quest: QuestDetail }) {
       messages={state.messages}
       busy={state.busy !== null}
       waitKind={state.busy}
-      onSubmitAsAnswer={canAnswerFromChat ? (text) => void session.submitAnswer(text) : undefined}
+      onAddToAnswer={canAnswerFromChat ? session.addToAnswer : undefined}
       online={state.online}
       explainAs={state.explainAs}
       onExplainAsChange={session.setExplainAs}

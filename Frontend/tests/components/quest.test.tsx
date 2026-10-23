@@ -399,24 +399,37 @@ describe('ShipsAiPanel', () => {
   });
 
   describe('answering from the chat', () => {
-    it('offers to submit the pilot’s latest message as their answer', async () => {
-      const onSubmitAsAnswer = vi.fn();
-      renderComms({ onSubmitAsAnswer });
+    const pilotSays = (text: string) => [messages[0]!, { id: 1, from: 'pilot' as const, tone: 'chat' as const, text }];
+    const answer = 'It stores 10 in the fuel variable.';
 
-      await userEvent.click(screen.getByRole('button', { name: 'Submit as answer' }));
-      expect(onSubmitAsAnswer).toHaveBeenCalledWith('Help?');
+    it('offers to add the pilot’s latest message to their answer, once', async () => {
+      const onAddToAnswer = vi.fn();
+      renderComms({ messages: pilotSays(answer), onAddToAnswer });
+
+      await userEvent.click(screen.getByRole('button', { name: 'Add to answer' }));
+      expect(onAddToAnswer).toHaveBeenCalledWith(answer);
+      expect(screen.queryByRole('button', { name: 'Add to answer' })).not.toBeInTheDocument();
+      expect(screen.getByText('Added to your answer')).toBeInTheDocument();
       expect(screen.getByLabelText("Message the Ship's AI")).toHaveAttribute(
         'placeholder',
-        "Ask the Ship's AI for guidance, or write your answer and submit it…",
+        "Ask the Ship's AI for guidance, or draft your answer here…",
       );
     });
 
+    it.each([
+      ['a question', 'Does it store 10 in the fuel variable?'],
+      ['a short reply', 'ok thanks'],
+    ])('doesn’t offer it for %s', (_name, text) => {
+      renderComms({ messages: pilotSays(text), onAddToAnswer: vi.fn() });
+      expect(screen.queryByRole('button', { name: 'Add to answer' })).not.toBeInTheDocument();
+    });
+
     it('doesn’t offer it when the objective can’t take an answer, or while busy', () => {
-      renderComms();
-      expect(screen.queryByRole('button', { name: 'Submit as answer' })).not.toBeInTheDocument();
+      renderComms({ messages: pilotSays(answer) });
+      expect(screen.queryByRole('button', { name: 'Add to answer' })).not.toBeInTheDocument();
       cleanup();
-      renderComms({ onSubmitAsAnswer: vi.fn(), busy: true });
-      expect(screen.queryByRole('button', { name: 'Submit as answer' })).not.toBeInTheDocument();
+      renderComms({ messages: pilotSays(answer), onAddToAnswer: vi.fn(), busy: true });
+      expect(screen.queryByRole('button', { name: 'Add to answer' })).not.toBeInTheDocument();
     });
   });
 });

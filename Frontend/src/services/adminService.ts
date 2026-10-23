@@ -7,6 +7,7 @@ import type {
   AdminSector,
   AdminSession,
   AdminUser,
+  AiFailureRow,
   AiUsageRow,
 } from '../types/admin';
 
@@ -72,7 +73,8 @@ export async function setUserActive(userId: number, isActive: boolean): Promise<
   return res.data.user;
 }
 
-export async function getAiUsage(): Promise<AiUsageRow[]> {
-  const res = await api.get<{ usage: AiUsageRow[] }>('/admin/ai-usage');
-  return res.data.usage;
+// Recent answered calls, and the failed attempts kept apart from them
+export async function getAiUsage(): Promise<{ usage: AiUsageRow[]; failures: AiFailureRow[] }> {
+  const res = await api.get<{ usage: AiUsageRow[]; failures: AiFailureRow[] }>('/admin/ai-usage');
+  return res.data;
 }

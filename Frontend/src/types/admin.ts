@@ -8,8 +8,9 @@ export interface AdminOverview {
   activePilots: number;
   publishedQuests: number;
   draftQuests: number;
-  aiCallsToday: number; // the last 24 hours
+  aiCallsToday: number; // the last 24 hours, answered requests only
   aiTokensToday: number;
+  aiFailuresToday: number; // Gemini attempts that got no reply
 }
 
 export interface AdminSession {
@@ -101,5 +102,15 @@ export interface AiUsageRow {
   inputTokens: number;
   outputTokens: number;
   flagged: boolean;
+  createdAt: string;
+}
+
+// A Gemini attempt that got no reply (the model list moves on to the next model)
+export interface AiFailureRow {
+  logId: number;
+  callsign: string;
+  feature: string;
+  model: string; // the exact model, e.g. gemini-3.7-flash
+  status: number | null; // 429 rate limited, 408 timed out, 5xx busy, null network error
   createdAt: string;
 }

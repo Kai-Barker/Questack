@@ -1,7 +1,7 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
 import { z } from 'zod';
 import type { GenerateContentConfig, GenerateContentResponse } from '@google/genai';
-import { generate, type ModelName } from '../../config/gemini.js';
+import { generate, logGenerateEvent, type GenerateEvent, type ModelName } from '../../config/gemini.js';
 import type { ChallengeContent, Proficiency } from '../../types/content.js';
 import {
   chatPrompt,
@@ -20,17 +20,18 @@ import {
 
 // =====================================================================
 // Ship's AI service: every Gemini feature in the app goes through here.
-// Prompts are built in src/prompts/shipsAi.ts; retries and the Flash ->
-// Flash-Lite fallback come from generate() in src/config/gemini.ts.
+// Prompts are built in src/prompts/shipsAi.ts; retries and the fallback
+// through the model list come from generate() in src/config/gemini.ts.
 // Pasted code is never logged or stored. (Answers are saved with the
 // pilot's progress by questService, never written to the server log.)
 // =====================================================================
 
 // ---------------------------------------------------------------------
 // Usage tracking. withUsage() runs a feature and collects the model and
-// token counts of every Gemini call it made (retries included), so the
-// controller can write them to ai_usage_logs. AsyncLocalStorage keeps each
-// request's calls separate without passing a collector through every function.
+// token counts of every Gemini call it made (retries included), and every
+// attempt that failed, so the controller can write them to ai_usage_logs.
+// AsyncLocalStorage keeps each request's calls separate without passing a
+// collector through every function.
 // ---------------------------------------------------------------------
 export interface AiUsage {
   model: ModelName;
@@ -38,20 +39,42 @@ export interface AiUsage {
   outputTokens: number;
 }
 
-const usageStore = new AsyncLocalStorage<AiUsage[]>();
+// A Gemini attempt that got no reply: rate limited, busy, timed out or a network error
+export interface AiFailure {
+  model: string; // the exact model, e.g. gemini-3.7-flash
+  status: number | null;
+}
+
+// Everything one feature asked of Gemini, filled in as it goes
+export interface AiCalls {
+  usage: AiUsage[];
+  failures: AiFailure[];
+}
+
+const usageStore = new AsyncLocalStorage<AiCalls>();
 
 function recordUsage(model: ModelName, response: GenerateContentResponse) {
-  usageStore.getStore()?.push({
+  usageStore.getStore()?.usage.push({
     model,
     inputTokens: response.usageMetadata?.promptTokenCount ?? 0,
     outputTokens: (response.usageMetadata?.candidatesTokenCount ?? 0) + (response.usageMetadata?.thoughtsTokenCount ?? 0),
   });
 }
 
-export async function withUsage<T>(run: () => Promise<T>): Promise<{ result: T; usage: AiUsage[] }> {
-  const usage: AiUsage[] = [];
-  const result = await usageStore.run(usage, run);
-  return { result, usage };
+// Passed to generate(): failed attempts are recorded, and every event still
+// gets its usual console line
+function onGenerateEvent(event: GenerateEvent) {
+  if (event.type === 'failed') usageStore.getStore()?.failures.push({ model: event.model, status: event.status });
+  logGenerateEvent(event);
+}
+
+// Pass your own `calls` to keep what was collected even if `run` throws (see trackUsage.ts)
+export async function withUsage<T>(
+  run: () => Promise<T>,
+  calls: AiCalls = { usage: [], failures: [] },
+): Promise<{ result: T } & AiCalls> {
+  const result = await usageStore.run(calls, run);
+  return { result, ...calls };
 }
 
 // Gemini replied, but not with something usable (empty, or JSON in the wrong shape)
@@ -63,7 +86,7 @@ export class AiReplyError extends Error {
 }
 
 async function askForText(model: ModelName, contents: string, config: GenerateContentConfig): Promise<string> {
-  const { response, modelUsed } = await generate(model, contents, config);
+  const { response, modelUsed } = await generate(model, contents, config, onGenerateEvent);
   recordUsage(modelUsed, response);
   const text = withoutPromptTags(response.text ?? '');
   if (!text) throw new AiReplyError();
@@ -88,7 +111,12 @@ async function askForJson<T>(
   schema: z.ZodType<T>,
 ): Promise<T> {
   for (let attempt = 1; attempt <= 2; attempt++) {
-    const { response, modelUsed } = await generate(model, contents, { ...config, responseMimeType: 'application/json' });
+    const { response, modelUsed } = await generate(
+      model,
+      contents,
+      { ...config, responseMimeType: 'application/json' },
+      onGenerateEvent,
+    );
     recordUsage(modelUsed, response);
     try {
       const parsed = schema.safeParse(cleanStrings(JSON.parse(response.text ?? '')));
@@ -134,7 +162,10 @@ function redactBugLine(challenge: ChallengeContent, text: string): string {
 async function guardedText(challenge: ChallengeContent, ask: () => Promise<string>): Promise<string> {
   const first = await ask();
   if (!leaksBugLine(challenge, first)) return first;
-  const second = await ask();
+  // The second try can fail (out of time, comms down): the first reply,
+  // redacted, is still worth sending
+  const second = await ask().catch(() => null);
+  if (second === null) return redactBugLine(challenge, first);
   return leaksBugLine(challenge, second) ? redactBugLine(challenge, second) : second;
 }
 
@@ -162,8 +193,10 @@ export async function mentorChat(
   messages: ChatMessage[],
   pastedCode?: string,
 ): Promise<string> {
+  // Flash-Lite: chat is the most frequent call, so it shouldn't use up Flash's
+  // small free quota, which marking needs more
   return guardedText(challenge, () =>
-    askForText('flash', chatPrompt(challenge, messages.slice(-CHAT_HISTORY_LIMIT), pastedCode), {
+    askForText('flashLite', chatPrompt(challenge, messages.slice(-CHAT_HISTORY_LIMIT), pastedCode), {
       systemInstruction: systemInstruction(proficiency, challenge.language),
       temperature: 0.7,
     }),

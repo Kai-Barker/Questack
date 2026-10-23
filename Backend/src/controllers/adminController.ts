@@ -1,6 +1,6 @@
 import type { Request, Response } from 'express';
 import { z } from 'zod';
-import { findAdminUser, getOverview, listUsers, recentAiUsage, setUserActive } from '../models/adminModel.js';
+import { findAdminUser, getOverview, listUsers, recentAiFailures, recentAiUsage, setUserActive } from '../models/adminModel.js';
 import { deleteDraftQuest, findQuest, listQuests, listSectors } from '../models/adminQuestModel.js';
 import { invalidateCatalog } from '../services/questCatalog.js';
 import { MAX_BRIEFING_LENGTH, MAX_OBJECTIVES, saveQuest } from '../services/adminQuestService.js';
@@ -140,5 +140,6 @@ export async function updateUser(req: Request, res: Response) {
 }
 
 export async function aiUsage(_req: Request, res: Response) {
-  res.json({ usage: await recentAiUsage() });
+  const [usage, failures] = await Promise.all([recentAiUsage(), recentAiFailures()]);
+  res.json({ usage, failures });
 }

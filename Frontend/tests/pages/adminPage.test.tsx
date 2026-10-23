@@ -26,6 +26,7 @@ const OVERVIEW = {
   draftQuests: 1,
   aiCallsToday: 40,
   aiTokensToday: 52000,
+  aiFailuresToday: 3,
 };
 
 describe('Admin tab in the pilot nav', () => {
@@ -432,6 +433,7 @@ describe('AdminAiPage', () => {
           createdAt: '2026-10-13T10:00:00.000Z',
         },
       ],
+      failures: [],
     });
     renderRoute(<AdminAiPage />, { path: '/admin/ai', auth: adminAuth() });
 
@@ -440,11 +442,35 @@ describe('AdminAiPage', () => {
     expect(screen.getByText('Answer marking')).toBeInTheDocument();
     expect(screen.getByText('Flash-Lite')).toBeInTheDocument();
     expect(screen.getByText('1,200 / 80')).toBeInTheDocument();
+    expect(screen.getByText('No failed attempts.')).toBeInTheDocument();
+  });
+
+  it('shows failed attempts in red, apart from the calls that answered', async () => {
+    respond('get', '/admin/overview', 200, OVERVIEW);
+    respond('get', '/admin/ai-usage', 200, {
+      usage: [],
+      failures: [
+        { logId: 7, callsign: 'ROOKIE', feature: 'hint', model: 'gemini-3.7-flash', status: 408, createdAt: '2026-10-13T10:00:00.000Z' },
+        { logId: 8, callsign: 'ROOKIE', feature: 'hint', model: 'gemini-3.6-flash', status: 429, createdAt: '2026-10-13T10:00:00.000Z' },
+        { logId: 9, callsign: 'ROOKIE', feature: 'hint', model: 'gemini-3.5-flash-lite', status: null, createdAt: '2026-10-13T10:00:00.000Z' },
+      ],
+    });
+    renderRoute(<AdminAiPage />, { path: '/admin/ai', auth: adminAuth() });
+
+    const failures = await screen.findByRole('region', { name: 'Failed attempts' });
+    expect(within(failures).getByText('gemini-3.7-flash')).toBeInTheDocument();
+    expect(within(failures).getByText('408 · Timed out')).toBeInTheDocument();
+    expect(within(failures).getByText('429 · Rate limited')).toBeInTheDocument();
+    expect(within(failures).getByText('Network error')).toBeInTheDocument();
+    expect(within(failures).getByRole('table')).toHaveClass('text-swarm');
+    // The 24-hour count sits beside the successful calls, in red too
+    expect(screen.getByText('Failed attempts (24h)')).toHaveClass('text-swarm');
+    expect(screen.getByText('The Ship’s AI hasn’t been called yet.')).toBeInTheDocument();
   });
 
   it('explains a refused request and retries it', async () => {
     respond('get', '/admin/overview', 403, { error: 'Command clearance required, Pilot.' });
-    respond('get', '/admin/ai-usage', 200, { usage: [] });
+    respond('get', '/admin/ai-usage', 200, { usage: [], failures: [] });
     const { user } = renderRoute(<AdminAiPage />, { path: '/admin/ai', auth: adminAuth() });
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Command clearance required, Pilot.');

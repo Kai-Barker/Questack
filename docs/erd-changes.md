@@ -39,6 +39,12 @@ Later changes are numbered migrations in `Backend/database/migrations/`, applied
 | `users.frame_reward_id`, `users.visor_reward_id` → `rewards` (`ON DELETE SET NULL`) | The equipped frame and visor. `NULL` shows the Standard item. |
 | Seeds 5 frames and 4 visors (`reward_type = 'gear'`) | Earned by the same `"<stat>>=<number>"` unlock rules as insignia, so nothing is written to `user_rewards` |
 
+## 008: Failed Ship's AI attempts
+
+| Change | Why |
+|---|---|
+| `ai_usage_logs.outcome` (`success` / `failed`, default `success`), `ai_usage_logs.model_name` VARCHAR(64), `ai_usage_logs.error_status` SMALLINT | `generate()` works through a list of Gemini models (bug log #34), and attempts that get no reply still use quota. Each failed attempt gets its own row with the exact model and status, shown in red on Admin › AI apart from the successes. Existing rows stay `success`. |
+
 ## Updated ERD (additions only)
 
 ```

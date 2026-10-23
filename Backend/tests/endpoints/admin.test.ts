@@ -133,6 +133,7 @@ const MODEL_CALLS = [
   admin.findAdminUser,
   admin.setUserActive,
   admin.recentAiUsage,
+  admin.recentAiFailures,
   adminQuests.listSectors,
   adminQuests.listQuests,
   adminQuests.findQuest,
@@ -604,7 +605,7 @@ describe('admin users', () => {
 });
 
 describe('GET /api/admin/ai-usage', () => {
-  it('returns the recent calls', async () => {
+  it('returns the recent calls and, separately, the failed attempts', async () => {
     adminExists();
     const row = {
       logId: 1,
@@ -616,10 +617,19 @@ describe('GET /api/admin/ai-usage', () => {
       flagged: false,
       createdAt: '2026-10-13T10:00:00.000Z',
     };
+    const failure = {
+      logId: 2,
+      callsign: 'ROOKIE',
+      feature: 'answer_evaluation',
+      model: 'gemini-3.6-flash',
+      status: 429,
+      createdAt: '2026-10-13T10:01:00.000Z',
+    };
     vi.mocked(admin.recentAiUsage).mockResolvedValue([row]);
+    vi.mocked(admin.recentAiFailures).mockResolvedValue([failure]);
 
     const res = await request(app).get('/api/admin/ai-usage').set('Cookie', asAdmin());
 
-    expect(res.body.usage).toEqual([row]);
+    expect(res.body).toEqual({ usage: [row], failures: [failure] });
   });
 });

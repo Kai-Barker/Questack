@@ -69,6 +69,27 @@ describe('every /api/ai route', () => {
     expect(res.body.error).toBe(COMMS_DOWN);
   });
 
+  it('logs the failed attempts even when the whole request fails', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    vi.mocked(generate).mockImplementation(async (_model, _contents, _config, onEvent) => {
+      onEvent?.({ type: 'failed', model: 'gemini-3.5-flash-lite', status: 429 });
+      onEvent?.({ type: 'failed', model: 'gemini-3.1-flash-lite', status: 408 });
+      throw new ApiError({ message: 'timed out', status: 408 });
+    });
+    const res = await post('hint', { challengeId: 101, proficiency: 'cadet', tier: 1 });
+
+    expect(res.status).toBe(503);
+    expect(aiUsage.logAiUsage).toHaveBeenCalledWith(
+      PILOT.userId,
+      'hint',
+      [],
+      [
+        { model: 'gemini-3.5-flash-lite', status: 429 },
+        { model: 'gemini-3.1-flash-lite', status: 408 },
+      ],
+    );
+  });
+
   it('a failed usage log never fails the pilot’s request', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
     vi.mocked(aiUsage.logAiUsage).mockRejectedValue(new Error('DB down'));
@@ -87,7 +108,7 @@ describe('POST /api/ai/hint', () => {
     expect(vi.mocked(generate).mock.calls[0]![0]).toBe('flashLite');
     expect(promptSent()).toContain('This is hint 2 of 3.');
     expect(promptSent()).toContain('<pilot_input>It stores fuel?</pilot_input>');
-    expect(aiUsage.logAiUsage).toHaveBeenCalledWith(PILOT.userId, 'hint', [{ model: 'flashLite', inputTokens: 100, outputTokens: 20 }]);
+    expect(aiUsage.logAiUsage).toHaveBeenCalledWith(PILOT.userId, 'hint', [{ model: 'flashLite', inputTokens: 100, outputTokens: 20 }], []);
   });
 
   it('never lets a hint name the bug’s line: one retry, then the mention is replaced', async () => {
@@ -123,13 +144,13 @@ describe('POST /api/ai/hint', () => {
 describe('POST /api/ai/chat', () => {
   const pilotSays = (text: string) => ({ from: 'pilot', text });
 
-  it('replies from Flash and logs it as a mentor chat', async () => {
+  it('replies from Flash-Lite and logs it as a mentor chat', async () => {
     const res = await post('chat', { challengeId: 101, proficiency: 'pilot', messages: [pilotSays('What is fuel?')] });
 
     expect(res.status).toBe(200);
     expect(res.body).toEqual({ reply: DEFAULT_TEXT_REPLY });
-    expect(vi.mocked(generate).mock.calls[0]![0]).toBe('flash');
-    expect(aiUsage.logAiUsage).toHaveBeenCalledWith(PILOT.userId, 'mentor_chat', expect.any(Array));
+    expect(vi.mocked(generate).mock.calls[0]![0]).toBe('flashLite');
+    expect(aiUsage.logAiUsage).toHaveBeenCalledWith(PILOT.userId, 'mentor_chat', expect.any(Array), []);
   });
 
   it('only sends the most recent 12 messages', async () => {
@@ -185,7 +206,7 @@ describe('POST /api/ai/evaluate', () => {
     });
     expect(connection.commit).toHaveBeenCalled();
     expect(connection.release).toHaveBeenCalled();
-    expect(aiUsage.logAiUsage).toHaveBeenCalledWith(PILOT.userId, 'answer_evaluation', expect.any(Array));
+    expect(aiUsage.logAiUsage).toHaveBeenCalledWith(PILOT.userId, 'answer_evaluation', expect.any(Array), []);
   });
 
   it('records a wrong answer with its guiding question', async () => {
@@ -286,7 +307,7 @@ describe('POST /api/ai/decode', () => {
     expect(res.status).toBe(200);
     expect(res.body).toEqual({ sections });
     expect(promptSent()).toContain('<pilot_code>');
-    expect(aiUsage.logAiUsage).toHaveBeenCalledWith(PILOT.userId, 'decode_transmission', expect.any(Array));
+    expect(aiUsage.logAiUsage).toHaveBeenCalledWith(PILOT.userId, 'decode_transmission', expect.any(Array), []);
   });
 
   it('retries once when the sections don’t fit the expected shape', async () => {
@@ -324,7 +345,7 @@ describe('POST /api/ai/debrief', () => {
     expect(res.status).toBe(200);
     expect(res.body.debrief).toBe('Sharp reading, Pilot. Next time, trace the loop before asking for hints.');
     expect(promptSent()).toContain('Objective 2 (Bug hunt): cleared on attempt 3, 2 hints used');
-    expect(aiUsage.logAiUsage).toHaveBeenCalledWith(PILOT.userId, 'debrief', expect.any(Array));
+    expect(aiUsage.logAiUsage).toHaveBeenCalledWith(PILOT.userId, 'debrief', expect.any(Array), []);
   });
 
   it('is 409 for a quest not yet cleared', async () => {

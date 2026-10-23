@@ -5,7 +5,7 @@ Every Gemini call goes through the backend. The API key (`GEMINI_API_KEY`) never
 ```
 Browser ──► /api/ai/*  ──► controller: zod validation, access check, rate limits
                             └─► aiService: builds the prompt (src/prompts/shipsAi.ts)
-                                 └─► generate(): retries + Flash → Flash-Lite fallback (src/config/gemini.ts)
+                                 └─► generate(): retries + fallback through a list of models (src/config/gemini.ts)
                                       └─► reply validated (zod) / guarded ──► JSON to the browser
                                                                          └─► ai_usage_logs (counts only)
 ```
@@ -41,7 +41,7 @@ The pilot can switch class at any time (the "Explain as" toggle). Each request c
 | Feature | Endpoint | Model | Temp | Output | Prompt builder |
 |---|---|---|---|---|---|
 | Tiered hint | `/ai/hint` | Flash-Lite | 0.6 | text, ≤3 sentences, ends with a question | `hintPrompt` |
-| Mentor chat | `/ai/chat` | Flash | 0.7 | text, ≤4 sentences | `chatPrompt` |
+| Mentor chat | `/ai/chat` | Flash-Lite | 0.7 | text, ≤4 sentences | `chatPrompt` |
 | Answer marking | `/ai/evaluate` | Flash | 0.2 | JSON `{correct, feedback, guidingQuestion}` | `evaluatePrompt` |
 | Decode objective | `/ai/decode` | Flash | 0.4 | JSON `{sections[2-6]}` | `decodePrompt` |
 | Mission debrief | `/ai/debrief` | Flash-Lite | 0.8 | text, 2 sentences | `debriefPrompt` |
@@ -49,7 +49,7 @@ The pilot can switch class at any time (the "Explain as" toggle). Each request c
 | Decoder chat | `/ai/decoder/chat` | Flash-Lite | 0.7 | text, ≤4 sentences | `decoderChatPrompt` |
 | Decoder check | `/ai/decoder/check` | Flash | 0.2 | JSON `{correct, feedback, guidingQuestion}` | `decoderCheckPrompt` |
 
-The model split follows the proposal: **Flash** for the heavier reasoning (marking, explaining code, conversation in quests) and **Flash-Lite** for quick, frequent replies. Marking uses a low temperature so the same answer gets the same mark. The debrief uses a higher one so it doesn't read like a template.
+The model split follows the proposal: **Flash** for the heavier reasoning (marking and explaining code) and **Flash-Lite** for quick, frequent replies. Mentor chat moved to Flash-Lite after the deployed test (bug log #34): it's the most frequent call, and Flash's small free quota is better spent on marking. Each column entry is a *tier*: `generate()` tries several models in that tier (see section 5). Marking uses a low temperature so the same answer gets the same mark. The debrief uses a higher one so it doesn't read like a template.
 
 ### Quest prompts: marking against an answer key
 
@@ -90,14 +90,23 @@ The frontend limits a pilot to 3 hints per objective, and `hintsUsed` is saved w
 
 | Situation | What happens | Pilot sees |
 |---|---|---|
-| Gemini busy (500/503/504) | Flash retries once after 1 s; Flash-Lite retries at 1 s, 2 s and 4 s | "Transmitting…" while it waits |
-| Flash still failing, or rate-limited (429) | Falls back to Flash-Lite automatically | A normal reply |
-| Both models fail | `503` "Ship's AI comms are down. Try again in a moment, Pilot." | That message in the comms panel; status shows **Offline** |
+| Gemini busy (500/503/504) | The model retries once after 1 s | "Transmitting…" while it waits |
+| Still busy, rate-limited (429) or hung (no reply in 20 s for Flash, 10 s for Flash-Lite) | Moves to the next model in the list; the failed one goes to the back of the list for 5 minutes | A normal reply |
+| Every model fails, or 45 s pass | `503` "Ship's AI comms are down. Try again in a moment, Pilot." | That message in the comms panel; status shows **Offline** |
 | Reply unusable after a retry | `502` "The Ship's AI sent back a garbled transmission." | That message |
 | Invalid request | `400` with field messages | The message |
 | Pilot over the AI limit | `429` (40 per 10 min, 150 per day) | A limit message |
 
-The frontend (`Frontend/src/services/aiService.ts`) allows 60 s per AI call, to cover retries and fallback. Every failure becomes a `CommsError` with a message safe to show. Buttons disable while a call is in flight, and a failed answer or decode keeps the pilot's text so they can resend.
+The frontend (`Frontend/src/services/aiService.ts`) allows 60 s per AI call, to cover retries and fallback. On the server, one pilot request gets 50 s for all its Gemini calls together (`aiRequestBudget` middleware): a JSON retry or the bug-line guard's second try can't run past the point where the browser has given up. If the pilot leaves (closes the page, or the browser times out), the remaining Gemini calls stop. If the guard's second try fails, the first reply is sent with the line redacted.
+
+Every attempt that gets no reply is logged in `ai_usage_logs` as its own `failed` row (exact model and status, migration 008), even when the whole request fails. Admin › AI shows them in red, apart from the successful calls. Every failure becomes a `CommsError` with a message safe to show. Buttons disable while a call is in flight, and a failed answer or decode keeps the pilot's text so they can resend.
+
+Every model has its own free-tier quota, so a list of models gives far more headroom than one. The lists (`MODEL_CHAINS` in `gemini.ts`):
+
+- **Flash tier:** `gemini-3.6-flash` → `gemini-3-flash-preview` → `gemini-3.7-flash` → `gemini-3.8-flash` → then the Flash-Lite list. 3.7 and 3.8 come last of the Flash models because they often hang on the free tier.
+- **Flash-Lite tier:** `gemini-3.5-flash-lite` → `gemini-3.1-flash-lite` → `gemini-flash-lite-latest`.
+
+A Flash model only starts if a Flash-Lite model would still have 12 s after it, so a hanging Flash model can't use up the whole 45 s.
 
 Output budgets: Flash 2,048 tokens (it uses many on hidden "thinking"), Flash-Lite 1,024.
 

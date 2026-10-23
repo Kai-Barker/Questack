@@ -6,8 +6,9 @@ export interface AdminOverview {
   activePilots: number;
   publishedQuests: number;
   draftQuests: number;
-  aiCallsToday: number; // the last 24 hours
+  aiCallsToday: number; // the last 24 hours, answered requests only
   aiTokensToday: number;
+  aiFailuresToday: number; // Gemini attempts that got no reply (rate limited, busy, timed out)
 }
 
 // Platform-wide counts for the admin console. Only totals: no pilot's
@@ -19,9 +20,12 @@ export async function getOverview(): Promise<AdminOverview> {
        (SELECT COUNT(*) FROM users WHERE is_active = 1) AS active_pilots,
        (SELECT COUNT(*) FROM quests WHERE status = 'published') AS published_quests,
        (SELECT COUNT(*) FROM quests WHERE status = 'draft') AS draft_quests,
-       (SELECT COUNT(*) FROM ai_usage_logs WHERE created_at >= UTC_TIMESTAMP() - INTERVAL 1 DAY) AS ai_calls,
+       (SELECT COUNT(*) FROM ai_usage_logs
+        WHERE outcome = 'success' AND created_at >= UTC_TIMESTAMP() - INTERVAL 1 DAY) AS ai_calls,
        (SELECT COALESCE(SUM(input_tokens + output_tokens), 0) FROM ai_usage_logs
-        WHERE created_at >= UTC_TIMESTAMP() - INTERVAL 1 DAY) AS ai_tokens`,
+        WHERE outcome = 'success' AND created_at >= UTC_TIMESTAMP() - INTERVAL 1 DAY) AS ai_tokens,
+       (SELECT COUNT(*) FROM ai_usage_logs
+        WHERE outcome = 'failed' AND created_at >= UTC_TIMESTAMP() - INTERVAL 1 DAY) AS ai_failures`,
   );
   const r: Partial<Record<string, unknown>> = rows[0] ?? {};
   return {
@@ -31,6 +35,7 @@ export async function getOverview(): Promise<AdminOverview> {
     draftQuests: Number(r.draft_quests ?? 0),
     aiCallsToday: Number(r.ai_calls ?? 0),
     aiTokensToday: Number(r.ai_tokens ?? 0),
+    aiFailuresToday: Number(r.ai_failures ?? 0),
   };
 }
 
@@ -104,6 +109,7 @@ export async function recentAiUsage(): Promise<AiUsageRow[]> {
   const [rows] = await pool.execute<RowDataPacket[]>(
     `SELECT l.log_id, u.username, l.feature, l.model, l.input_tokens, l.output_tokens, l.flagged, l.created_at
      FROM ai_usage_logs l JOIN users u ON u.user_id = l.user_id
+     WHERE l.outcome = 'success'
      ORDER BY l.created_at DESC, l.log_id DESC
      LIMIT ${AI_USAGE_LIMIT}`,
   );
@@ -115,6 +121,35 @@ export async function recentAiUsage(): Promise<AiUsageRow[]> {
     inputTokens: r.input_tokens,
     outputTokens: r.output_tokens,
     flagged: r.flagged === 1,
+    createdAt: new Date(r.created_at).toISOString(),
+  }));
+}
+
+export interface AiFailureRow {
+  logId: number;
+  callsign: string;
+  feature: string;
+  model: string; // the exact model, e.g. gemini-3.7-flash
+  status: number | null; // 429 rate limited, 408 timed out, 5xx busy, null network error
+  createdAt: string;
+}
+
+// The most recent Gemini attempts that got no reply, kept apart from the
+// successes so the admin console can show what the model rotation costs
+export async function recentAiFailures(): Promise<AiFailureRow[]> {
+  const [rows] = await pool.execute<RowDataPacket[]>(
+    `SELECT l.log_id, u.username, l.feature, l.model_name, l.error_status, l.created_at
+     FROM ai_usage_logs l JOIN users u ON u.user_id = l.user_id
+     WHERE l.outcome = 'failed'
+     ORDER BY l.created_at DESC, l.log_id DESC
+     LIMIT ${AI_USAGE_LIMIT}`,
+  );
+  return rows.map((r) => ({
+    logId: r.log_id,
+    callsign: r.username,
+    feature: r.feature,
+    model: r.model_name ?? 'unknown',
+    status: r.error_status ?? null,
     createdAt: new Date(r.created_at).toISOString(),
   }));
 }

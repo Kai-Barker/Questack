@@ -165,7 +165,8 @@ export async function sumXpByWeek(userId: number, since: Date): Promise<Map<stri
 
 export async function countAiQuestions(userId: number): Promise<number> {
   const [rows] = await pool.execute<RowDataPacket[]>(
-    "SELECT COUNT(*) AS total FROM ai_usage_logs WHERE user_id = ? AND feature = 'mentor_chat'",
+    // Failed attempts have their own rows (migration 008): only answered questions count
+    "SELECT COUNT(*) AS total FROM ai_usage_logs WHERE user_id = ? AND feature = 'mentor_chat' AND outcome = 'success'",
     [userId],
   );
   return Number(rows[0]?.total ?? 0);

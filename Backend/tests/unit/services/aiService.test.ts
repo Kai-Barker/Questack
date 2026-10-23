@@ -76,6 +76,16 @@ describe('bug-line guard (hints and chat)', () => {
     expect(await mentorChat(explain, 'pilot', [{ from: 'pilot', text: 'what does line 3 do?' }])).toBe('Line 3 declares the total.');
   });
 
+  it('sends the first reply, redacted, if the second try fails', async () => {
+    vi.mocked(generate)
+      .mockImplementationOnce(async (model) => ({ response: geminiReply('Look at line 3.'), modelUsed: model, usedFallback: false }))
+      .mockRejectedValueOnce(new Error('comms down'));
+
+    const hint = await getHint(bugHunt, 'cadet', 1);
+    expect(generate).toHaveBeenCalledTimes(2);
+    expect(hint).toBe('Look at the right line.');
+  });
+
   it('guards mentor chat too', async () => {
     geminiSays('It is on line 3.', 'Look inside the loop.');
     expect(await mentorChat(bugHunt, 'pilot', [{ from: 'pilot', text: 'which line?' }])).toBe('Look inside the loop.');
@@ -83,14 +93,14 @@ describe('bug-line guard (hints and chat)', () => {
 });
 
 describe('models and settings', () => {
-  it('uses Flash-Lite for hints and debriefs, Flash for chat, marking and decoding', async () => {
+  it('uses Flash-Lite for hints, debriefs and chat, Flash for marking and decoding', async () => {
     geminiSays(json({ correct: true, feedback: 'Yes.' }));
     await getHint(explain, 'cadet', 1);
     await writeDebrief('Signal Check', 'C#', 'cadet', [{ challengeType: 'bug_hunt', attempts: 1, hintsUsed: 0 }]);
     await mentorChat(explain, 'cadet', [{ from: 'pilot', text: 'hi' }]);
     await evaluateAnswer(explain, 'cadet', 'answer');
 
-    expect(vi.mocked(generate).mock.calls.map((c) => c[0])).toEqual(['flashLite', 'flashLite', 'flash', 'flash']);
+    expect(vi.mocked(generate).mock.calls.map((c) => c[0])).toEqual(['flashLite', 'flashLite', 'flashLite', 'flash']);
   });
 
   it('asks for JSON when marking, at temperature 0 so the same answer gets the same mark', async () => {
@@ -230,6 +240,19 @@ describe('withUsage', () => {
       { model: 'flash', inputTokens: 50, outputTokens: 15 },
       { model: 'flashLite', inputTokens: 50, outputTokens: 15 },
     ]);
+  });
+
+  it('collects failed attempts apart from the calls that answered', async () => {
+    vi.mocked(generate).mockImplementation(async (model, _contents, _config, onEvent) => {
+      onEvent?.({ type: 'failed', model: 'gemini-3.5-flash-lite', status: 503 });
+      onEvent?.({ type: 'retry', model: 'gemini-3.5-flash-lite', status: 503, attempt: 2, maxAttempts: 2, delayMs: 1000 });
+      return { response: geminiReply('A hint.'), modelUsed: model, usedFallback: false };
+    });
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const { usage, failures } = await withUsage(() => getHint(explain, 'cadet', 1));
+
+    expect(failures).toEqual([{ model: 'gemini-3.5-flash-lite', status: 503 }]); // the retry isn't a failure of its own
+    expect(usage).toHaveLength(1);
   });
 
   it('keeps simultaneous features’ usage apart', async () => {

@@ -73,7 +73,7 @@ Mounted at `/admin` behind `appIpLimiter`, `requireAuth` and **`requireAdmin`**,
 | DELETE | `/admin/quests/:id` | | `204`. **Drafts only**, and only if no pilot has played it: `409` otherwise. Hide a published quest by saving it as a draft. | write |
 | GET | `/admin/users` | | `{ users: [{ userId, callsign, email, role, isActive, level, totalXp, lastActive, createdAt }] }` | read |
 | PATCH | `/admin/users/:id` | `{ isActive }` | `{ user }`. Locks the pilot out on their next request. `400` for your own account, `409` for another admin. | write |
-| GET | `/admin/ai-usage` | | `{ usage }`: the last 50 Ship's AI calls (pilot, feature, model, tokens, flagged). No prompt or reply text is stored. | read |
+| GET | `/admin/ai-usage` | | `{ usage, failures }`: the last 50 Ship's AI calls that answered (pilot, feature, model, tokens, flagged), and the last 50 failed Gemini attempts (pilot, feature, exact model, status). No prompt or reply text is stored. | read |
 
 **Quest body:** `{ languageId, title, concept, difficulty, status: 'draft' | 'published', isSideQuest, storyText, xpReward, prerequisiteIds[], objectives[] }`, where each objective is `{ challengeId?, type: 'read_and_explain' | 'bug_hunt' | 'decode_transmission', instructions, fileName?, codeSnippet?, answerKey?, markingCriteria, bugLine? }`. Unknown fields are rejected. The backend checks:
 

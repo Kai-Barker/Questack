@@ -3,6 +3,8 @@ import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import { ApiError } from '@google/genai';
 import { pool } from './config/db.js';
+import { PilotLeftError } from './config/gemini.js';
+import { aiRequestBudget } from './middleware/aiRequestBudget.js';
 import { aiDailyLimiter, aiLimiter, appIpLimiter, healthLimiter } from './middleware/rateLimiters.js';
 import { requireAdmin } from './middleware/requireAdmin.js';
 import { requireAuth } from './middleware/requireAuth.js';
@@ -106,8 +108,9 @@ app.get('/api/health', healthLimiter, async (_req, res) => {
 app.use('/api/auth', authRoutes);
 // Signed-in endpoints: an IP limit first (before the session's database
 // lookup), then the session, then each route's own per-pilot limit.
-// The Ship's AI is rate limited per pilot (short burst and daily) to protect the Gemini quota.
-app.use('/api/ai', appIpLimiter, requireAuth, aiLimiter, aiDailyLimiter, aiRoutes);
+// The Ship's AI is rate limited per pilot (short burst and daily) to protect the Gemini quota,
+// and each request gets one time limit for all its Gemini calls.
+app.use('/api/ai', appIpLimiter, requireAuth, aiLimiter, aiDailyLimiter, aiRequestBudget, aiRoutes);
 app.use('/api/profile', appIpLimiter, requireAuth, profileRoutes);
 // Admin console: signed in, and the account's role (re-read every request) must be admin
 app.use('/api/admin', appIpLimiter, requireAuth, requireAdmin, adminRoutes);
@@ -123,6 +126,8 @@ app.use('/api', (_req, res) => {
 // handlers here automatically. Request bodies are never logged: they can
 // contain the pilot's pasted code.
 app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
+  // The pilot has gone, so there's no one to reply to
+  if (err instanceof PilotLeftError) return;
   if (err instanceof HttpError) {
     res.status(err.status).json({ error: err.message, ...(err.fields && { fields: err.fields }) });
     return;

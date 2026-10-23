@@ -316,13 +316,20 @@ export function useQuestSession(quest: QuestDetail) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // `fromChat` is a chat message the pilot chose to submit as their answer: it
-  // goes into the answer box too, so they can see what was marked
-  async function submitAnswer(fromChat?: string) {
+  // "Add to answer" in the chat: the message goes on the end of the answer box
+  // (keeping what the pilot already wrote), and that objective is shown so they
+  // can check it before submitting
+  function addToAnswer(text: string) {
+    if (!progress || progress.status !== 'current' || isBriefing) return;
+    const existing = progress.answer.trimEnd();
+    dispatch({ type: 'edit', index, patch: { answer: existing ? `${existing}\n${text}` : text } });
+    dispatch({ type: 'view', index });
+  }
+
+  async function submitAnswer() {
     if (state.busy || !challenge || !progress || progress.status !== 'current' || isBriefing) return;
-    const answer = (fromChat ?? progress.answer).trim();
+    const answer = progress.answer.trim();
     if (!answer || (isDecode && !progress.decoded)) return;
-    if (fromChat !== undefined) dispatch({ type: 'edit', index, patch: { answer: fromChat } });
 
     const evaluation = await withComms('submit', () =>
       evaluateAnswer({
@@ -391,6 +398,7 @@ export function useQuestSession(quest: QuestDetail) {
     requestNextHint,
     sendMessage,
     decode,
+    addToAnswer,
     submitAnswer,
     acknowledgeBriefing,
   };

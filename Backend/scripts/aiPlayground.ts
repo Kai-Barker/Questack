@@ -5,7 +5,7 @@
 // =====================================================================
 import 'dotenv/config';
 import { FinishReason } from '@google/genai';
-import { generate, MAX_OUTPUT_TOKENS, MODELS, type ModelName } from '../src/config/gemini.js';
+import { generate, MAX_OUTPUT_TOKENS, MODEL_CHAINS, type ModelName } from '../src/config/gemini.js';
 import { COMMS_DOWN_MESSAGE, commsMessage } from '../src/utils/commsMessages.js';
 
 const SETTINGS = {
@@ -40,7 +40,7 @@ Never write the full solution. Give hints and end with one guiding question.`,
 // ---------------------------------------------------------------------
 // You shouldn't need to edit below here
 // ---------------------------------------------------------------------
-console.log(`Opening channel to ${MODELS[SETTINGS.model]}...\n`);
+console.log(`Opening channel to ${MODEL_CHAINS[SETTINGS.model][0]}...\n`);
 
 try {
   const { response, modelUsed, usedFallback } = await generate(
@@ -53,14 +53,16 @@ try {
       ...(SETTINGS.maxOutputTokens !== undefined && { maxOutputTokens: SETTINGS.maxOutputTokens }),
       ...(SETTINGS.jsonMode && { responseMimeType: 'application/json' }),
     },
-    (event) => console.log(`[COMMS] ${commsMessage(event)}`),
+    (event) => {
+      if (event.type !== 'failed') console.log(`[COMMS] ${commsMessage(event)}`);
+    },
   );
   console.log();
 
   const usage = response.usageMetadata;
   console.log(response.text ?? '(empty reply: try raising maxOutputTokens)');
   console.log('\n---');
-  console.log(`Model:         ${response.modelVersion ?? MODELS[modelUsed]}${usedFallback ? ' (fallback)' : ''}`);
+  console.log(`Model:         ${response.modelVersion ?? modelUsed}${usedFallback ? ' (fallback)' : ''}`);
   console.log(`Input tokens:  ${usage?.promptTokenCount ?? '?'}`);
   console.log(`Output tokens: ${usage?.candidatesTokenCount ?? '?'}`);
   if (usage?.thoughtsTokenCount) {

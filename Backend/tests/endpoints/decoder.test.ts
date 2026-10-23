@@ -58,7 +58,7 @@ describe('POST /api/ai/decoder', () => {
     expect(res.body.sections).toEqual(DECODED.sections);
     expect(res.body.question).toBe(QUESTION);
     expect(typeof res.body.checkToken).toBe('string');
-    expect(aiUsage.logAiUsage).toHaveBeenCalledWith(PILOT.userId, 'decode_transmission', expect.any(Array));
+    expect(aiUsage.logAiUsage).toHaveBeenCalledWith(PILOT.userId, 'decode_transmission', expect.any(Array), []);
   });
 
   it('wraps the code as untrusted and never lets it close its own tag', async () => {
@@ -134,7 +134,7 @@ describe('POST /api/ai/decoder/chat', () => {
     expect(res.status).toBe(200);
     expect(res.body.reply).toBe('Each pass takes 3 from fuel, Pilot.');
     expect(promptSent()).toContain("don't answer the question for them");
-    expect(aiUsage.logAiUsage).toHaveBeenCalledWith(PILOT.userId, 'mentor_chat', expect.any(Array));
+    expect(aiUsage.logAiUsage).toHaveBeenCalledWith(PILOT.userId, 'mentor_chat', expect.any(Array), []);
   });
 
   it('is 400 without any messages', async () => {

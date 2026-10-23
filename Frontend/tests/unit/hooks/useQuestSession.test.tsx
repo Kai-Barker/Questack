@@ -190,14 +190,29 @@ describe('submitting answers', () => {
     expect(lastMessage(session())).toMatchObject({ tone: 'retry', label: 'Objective 01 · Not yet', text: 'Not quite.\n\nWhat value is stored?' });
   });
 
-  it('marks a chat message the pilot submits as their answer, and puts it in the answer box', async () => {
+  it('adds a chat message to the end of the answer box without submitting it', async () => {
     const calls = respond('post', '/ai/evaluate', 200, { correct: true, feedback: 'Spot on.' });
     const { result, session } = setup();
+    act(() => result.current.editObjective(0, { answer: 'It stores 10.  ' }));
 
-    await act(() => result.current.submitAnswer('It stores 10 in fuel.'));
+    act(() => result.current.addToAnswer('The value goes into fuel.'));
+    expect(session().state.objectives[0]).toMatchObject({ status: 'current', answer: 'It stores 10.\nThe value goes into fuel.' });
+    expect(calls).toHaveLength(0);
 
-    expect(calls[0]!.body).toMatchObject({ challengeId: 101, answer: 'It stores 10 in fuel.' });
-    expect(session().state.objectives[0]).toMatchObject({ status: 'cleared', answer: 'It stores 10 in fuel.' });
+    await act(() => result.current.submitAnswer());
+    expect(calls[0]!.body).toMatchObject({ challengeId: 101, answer: 'It stores 10.\nThe value goes into fuel.' });
+  });
+
+  it('fills an empty answer box, and shows the current objective if the pilot was reviewing another', async () => {
+    respond('post', '/ai/evaluate', 200, { correct: true, feedback: 'Spot on.' });
+    const { result, session } = setup();
+    act(() => result.current.editObjective(0, { answer: 'It stores 10.' }));
+    await act(() => result.current.submitAnswer());
+    act(() => result.current.viewObjective(0));
+
+    act(() => result.current.addToAnswer('The result is never stored back in fuel.'));
+    expect(session().state.viewing).toBe(1);
+    expect(session().state.objectives[1]).toMatchObject({ answer: 'The result is never stored back in fuel.' });
   });
 
   it('does nothing with an empty answer', async () => {

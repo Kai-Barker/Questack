@@ -32,6 +32,7 @@ export const ADMIN_OVERVIEW = {
   draftQuests: 1,
   aiCallsToday: 40,
   aiTokensToday: 52000,
+  aiFailuresToday: 3,
 };
 
 export const DEFAULT_TEXT_REPLY = 'Trace the loop one pass at a time, Pilot. What changes each time?';
@@ -106,6 +107,7 @@ export function applyDefaults() {
   vi.mocked(admin.findAdminUser).mockResolvedValue(null);
   vi.mocked(admin.setUserActive).mockResolvedValue(undefined);
   vi.mocked(admin.recentAiUsage).mockResolvedValue([]);
+  vi.mocked(admin.recentAiFailures).mockResolvedValue([]);
 
   // The quest editor: an empty galaxy with the two launch sectors
   vi.mocked(adminQuests.listSectors).mockResolvedValue([
