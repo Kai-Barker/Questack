@@ -99,6 +99,21 @@ npm test
 npm run lint
 ```
 
+## Deployment
+
+The backend runs on Render and the frontend on Vercel. `Frontend/vercel.json` rewrites `/api/*` to the Render service, so the browser only ever talks to the Vercel domain and the session cookie stays first-party (the same job Vite's proxy does locally).
+
+**Backend (Render web service)**
+
+| Setting | Value |
+|---|---|
+| Root directory | `Backend` |
+| Build command | `npm ci --include=dev && npm run build` (TypeScript is a dev dependency) |
+| Start command | `npm start` |
+| Environment | `DATABASE_URL`, `JWT_SECRET`, `JWT_EXPIRES_IN`, `GEMINI_API_KEY`, `NODE_ENV=production`, `TRUST_PROXY=2`, `CLIENT_URL=<the Vercel URL>` |
+
+**Frontend (Vercel project)**: root directory `Frontend`, framework preset Vite, no environment variables (leave `VITE_API_URL` unset). If the Render URL isn't `https://questack-api.onrender.com`, update it in `Frontend/vercel.json`.
+
 ## Documentation
 
 | Doc | What it covers |

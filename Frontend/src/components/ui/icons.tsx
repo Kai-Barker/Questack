@@ -64,12 +64,6 @@ export const CloseIcon = (props: IconProps) => (
   </Icon>
 );
 
-export const RefreshIcon = (props: IconProps) => (
-  <Icon {...props}>
-    <path d="M20 12a8 8 0 1 1-2.3-5.7M20 4v5h-5" />
-  </Icon>
-);
-
 export const ChevronRightIcon = (props: IconProps) => (
   <Icon {...props}>
     <path d="M9 6l6 6-6 6" />

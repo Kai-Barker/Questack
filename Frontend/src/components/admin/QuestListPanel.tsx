@@ -40,12 +40,14 @@ export default function QuestListPanel({ sectors, quests, sectorId, onSectorChan
       (!term || q.title.toLowerCase().includes(term) || q.concept.toLowerCase().includes(term)),
   );
 
+  // A flex column so the max height caps the inner panel and the list scrolls,
+  // instead of it growing past the screen where later quests can't be reached
   return (
     <section
       aria-labelledby={`${baseId}-heading`}
-      className="chamfer bg-line p-px lg:sticky lg:top-6 lg:max-h-[calc(100dvh-var(--nav-h,5rem)-3rem)]"
+      className="chamfer flex flex-col bg-line p-px lg:sticky lg:top-6 lg:max-h-[calc(100dvh-var(--nav-h,5rem)-3rem)]"
     >
-      <div className="chamfer flex h-full flex-col bg-panel p-4">
+      <div className="chamfer flex min-h-0 flex-1 flex-col bg-panel p-4">
         <div className="flex items-center justify-between gap-3">
           <h2 id={`${baseId}-heading`} className="font-display text-base font-bold tracking-[0.15em] uppercase">
             Quests

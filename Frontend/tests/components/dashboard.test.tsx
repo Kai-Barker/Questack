@@ -6,7 +6,6 @@ import DecodeTransmissionCard from '../../src/components/dashboard/DecodeTransmi
 import PilotLoadoutPanel from '../../src/components/dashboard/PilotLoadoutPanel';
 import PilotStatusPanel from '../../src/components/dashboard/PilotStatusPanel';
 import AppLayout from '../../src/components/layout/AppLayout';
-import SystemsStatusToast from '../../src/components/layout/SystemsStatusToast';
 import TopNav from '../../src/components/layout/TopNav';
 import GalaxyMap from '../../src/components/map/GalaxyMap';
 import MapLegend from '../../src/components/map/MapLegend';
@@ -18,7 +17,7 @@ import ViewToggle from '../../src/components/ui/ViewToggle';
 import type { SectorSummary } from '../../src/types/dashboard';
 import { DASHBOARD, PILOT } from '../helpers/fixtures';
 import { currentLocation, fakeAuth, fakePilot, renderRoute } from '../helpers/render';
-import { respond, unreachable } from '../helpers/server';
+import { respond } from '../helpers/server';
 
 const [CSHARP, JS] = DASHBOARD.sectors as [SectorSummary, SectorSummary];
 
@@ -263,7 +262,6 @@ describe('TopNav', () => {
 describe('AppLayout', () => {
   it('wraps every signed-in page with the nav, loaded from the backend', async () => {
     respond('get', '/pilot/me', 200, PILOT);
-    respond('get', '/health', 200, { status: 'ok', database: 'connected', timestamp: '' });
     renderRoute(<p>root</p>, {
       path: '/unused',
       at: '/profile',
@@ -272,44 +270,6 @@ describe('AppLayout', () => {
 
     expect(screen.getByText('Profile page')).toBeInTheDocument();
     expect(await screen.findByText('Signed in as Vega-7')).toBeInTheDocument();
-  });
-});
-
-describe('SystemsStatusToast', () => {
-  it('reports every system online', async () => {
-    respond('get', '/health', 200, { status: 'ok', database: 'connected', timestamp: '' });
-    render(<SystemsStatusToast />);
-
-    expect(screen.getByText('Running systems check…')).toBeInTheDocument();
-    expect(await screen.findByText('All systems online')).toBeInTheDocument();
-    expect(screen.getByText('Database').nextElementSibling).toHaveTextContent('Connected');
-  });
-
-  it('reports the database being down', async () => {
-    respond('get', '/health', 503, { status: 'degraded', database: 'unreachable', timestamp: '' });
-    render(<SystemsStatusToast />);
-
-    expect(await screen.findByText('Systems degraded')).toBeInTheDocument();
-    expect(screen.getByText('Backend API').nextElementSibling).toHaveTextContent('Online');
-    expect(screen.getByText('Database').nextElementSibling).toHaveTextContent('Unreachable');
-  });
-
-  it('reports the backend being down, and can check again', async () => {
-    unreachable('get', '/health');
-    render(<SystemsStatusToast />);
-    expect(await screen.findByText(/Backend unreachable/)).toBeInTheDocument();
-
-    respond('get', '/health', 200, { status: 'ok', database: 'connected', timestamp: '' });
-    await userEvent.click(screen.getByRole('button', { name: 'Run systems check again' }));
-    expect(await screen.findByText('All systems online')).toBeInTheDocument();
-  });
-
-  it('can be dismissed', async () => {
-    respond('get', '/health', 200, { status: 'ok', database: 'connected', timestamp: '' });
-    render(<SystemsStatusToast />);
-    await userEvent.click(screen.getByRole('button', { name: 'Dismiss systems status' }));
-
-    expect(screen.queryByRole('complementary', { name: 'Systems status' })).not.toBeInTheDocument();
   });
 });
 

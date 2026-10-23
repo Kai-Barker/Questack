@@ -4,7 +4,6 @@ import { NavSlotContext } from '../../context/NavSlotContext';
 import { PilotProvider } from '../../context/PilotProvider';
 import OrbitalRings from '../auth/OrbitalRings';
 import GalaxyBackdrop from '../ui/GalaxyBackdrop';
-import SystemsStatusToast from './SystemsStatusToast';
 import TopNav from './TopNav';
 
 // Shell shared by every signed-in screen: nav on top, the current page below,
@@ -24,7 +23,6 @@ export default function AppLayout() {
           <OrbitalRings variant="app" />
           <TopNav slotRef={setSlotElement} slotInUse={slotInUse} />
           <Outlet />
-          <SystemsStatusToast />
         </div>
       </NavSlotContext>
     </PilotProvider>
