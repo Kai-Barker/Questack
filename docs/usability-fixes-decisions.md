@@ -23,7 +23,7 @@ The new "also accept lines" feature needed a new column, and your dev backend (`
 
 1. `npm run db:migrate`, which applied `006_alt_bug_lines.sql` (adds one nullable column; nothing else touched).
 2. `npm run db:seed`, which updated the 10 seeded quests with the new answer keys and extra accepted lines. It's now safe to re-run: it no longer deletes briefings or undoes the curriculum's prerequisites.
-3. `npm run db:curriculum -- csharp --admin SYNERGYY-4`, which re-imported the C# curriculum with its updated answer keys. Every quest was updated in place, so pilots' progress is kept.
+3. `npm run db:curriculum -- csharp --admin <admin callsign>`, which re-imported the C# curriculum with its updated answer keys. Every quest was updated in place, so pilots' progress is kept.
 
 **Restart the backend** (or wait 5 minutes) for the updated quest content to reach pilots.
 

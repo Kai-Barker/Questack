@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import galaxyTexture from '../assets/GalaxyTexture.webp';
-import logo from '../assets/QuestackLogoTemp.png';
+import logo from '../assets/QuestackLogo.png';
 import { CAPTIONS, HOLD_MS, LIFT_MS, MIN_LOAD_MS, TIMEOUT_MS } from '../config/splash';
 import type { AuthStatus } from '../context/AuthContext';
 import { getHealth } from '../services/healthService';
