@@ -35,10 +35,10 @@ const updateBody = z
   })
   .refine((body) => Object.keys(body).length > 0, 'Nothing to update.');
 
-// The current access code is required: a callsign is also a login name
+// The current password is required: a callsign is also a login name
 const callsignBody = z.strictObject({
   callsign,
-  password: z.string('Enter your access code.').min(1, 'Enter your access code.').max(200),
+  password: z.string('Enter your password.').min(1, 'Enter your password.').max(200),
 });
 
 // requireAuth runs first, so req.user is always set. Every handler uses the

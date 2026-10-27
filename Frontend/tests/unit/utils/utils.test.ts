@@ -48,7 +48,7 @@ describe('authRules', () => {
     expect(accessCodeChecks('launch2026', 'launch2026')).toEqual([
       { label: '8 characters or more', met: true },
       { label: 'Contains a number', met: true },
-      { label: 'Codes match', met: true },
+      { label: 'Passwords match', met: true },
     ]);
     expect(accessCodeChecks('short', '').map((c) => c.met)).toEqual([false, false, false]);
     expect(accessCodeChecks('launch2026', 'launch2027')[2]!.met).toBe(false);

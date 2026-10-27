@@ -68,7 +68,7 @@ describe('QuestListView', () => {
 
   it('scrolls inside a box no taller than the map, instead of stretching the page', () => {
     renderList(28, null);
-    expect(listBox()).toHaveClass('overflow-y-auto', 'max-h-[30rem]', 'lg:max-h-[34rem]');
+    expect(listBox()).toHaveClass('overflow-y-auto', 'max-h-[30rem]', 'lg:max-h-sector-map');
     expect(screen.getAllByRole('listitem')).toHaveLength(28);
   });
 

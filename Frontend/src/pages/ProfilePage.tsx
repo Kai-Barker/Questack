@@ -16,12 +16,12 @@ import { usePilot } from '../hooks/usePilot';
 import { getMyProfile, updateProfile } from '../services/profileService';
 import type { PilotProfile, ProfileUpdate } from '../types/profile';
 
-const pageClasses = 'mx-auto grid max-w-[90rem] gap-6 px-4 py-6 sm:px-6 lg:grid-cols-[17rem_minmax(0,1fr)]';
+const pageClasses = 'mx-auto grid max-w-page gap-6 px-4 py-6 sm:px-6 lg:grid-cols-[17rem_minmax(0,1fr)]';
 
 function ProfileSkeleton() {
   const block = 'chamfer bg-panel motion-safe:animate-pulse';
   return (
-    <main className="mx-auto max-w-[90rem] space-y-6 px-4 py-6 sm:px-6" aria-busy="true">
+    <main className="mx-auto max-w-page space-y-6 px-4 py-6 sm:px-6" aria-busy="true">
       <p className="sr-only" role="status">
         Loading pilot profile…
       </p>

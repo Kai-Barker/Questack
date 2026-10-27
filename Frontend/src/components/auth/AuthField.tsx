@@ -10,7 +10,7 @@ interface AuthFieldProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 'on
   hint?: ReactNode; // right of the label, e.g. "Public" or a link
   error?: string;
   valid?: boolean; // shows a tick once the value passes the format rules
-  reveal?: { shown: boolean; onToggle: () => void }; // Reveal / Hide for access codes
+  reveal?: { shown: boolean; onToggle: () => void }; // Reveal / Hide for passwords
 }
 
 // A labelled console input. While focused, the frame and label turn cyan and
@@ -72,7 +72,7 @@ export default function AuthField({
             className="mr-2 rounded px-3 py-1.5 font-display text-xs tracking-[0.2em] text-muted uppercase hover:text-accent focus-visible:outline-2 focus-visible:outline-accent"
           >
             {reveal.shown ? 'Hide' : 'Reveal'}
-            <span className="sr-only"> access code</span>
+            <span className="sr-only"> password</span>
           </button>
         )}
       </ChamferFrame>

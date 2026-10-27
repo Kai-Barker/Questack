@@ -28,7 +28,7 @@ const registerBody = z.object({
 
 const loginBody = z.object({
   identifier: z.string().trim().min(1, 'Enter your callsign or email.').max(255),
-  password: z.string().min(1, 'Enter your access code.').max(200),
+  password: z.string().min(1, 'Enter your password.').max(200),
   remember: z.boolean().optional(),
 });
 

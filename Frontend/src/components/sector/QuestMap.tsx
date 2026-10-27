@@ -46,7 +46,7 @@ export default function QuestMap({ layout, states, selectedId, shipQuestId, onSe
     // Scrolls sideways inside its box when the path is longer than the screen
     <div ref={scrollerRef} className="overflow-x-auto">
       <div
-        className="relative mx-auto h-[30rem] lg:h-[34rem]"
+        className="relative mx-auto h-[30rem] lg:h-sector-map"
         style={{ minWidth: `${Math.max(MIN_WIDTH_REM, columnCount * COLUMN_WIDTH_REM)}rem` }}
       >
         <svg

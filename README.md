@@ -243,7 +243,7 @@ The backend runs on Render and the frontend on Vercel. `Frontend/vercel.json` re
 
 ## 3. Features and Usage
 
-- **Enlistment and Accounts**: Enlist (sign up), log in and log out. Sessions use a JWT in an httpOnly cookie, access codes are bcrypt-hashed, and logins and sign-ups are rate-limited.
+- **Enlistment and Accounts**: Enlist (sign up), log in and log out. Sessions use a JWT in an httpOnly cookie, passwords are bcrypt-hashed, and logins and sign-ups are rate-limited.
 - **Splash Screen**: Shows the logo while checking that the backend and database are reachable, then offers *Registered pilot* (log in) or *New recruit* (enlist).
 - **Onboarding**: After enlisting, the pilot picks a first sector (language), a proficiency class (Cadet, Pilot or Commander) and a starting concept. Any account with no sector is sent here.
 - **Galaxy Map**: The home screen. Every sector with its progress (map and list views), the mission to continue, and the pilot's status, streak and XP.
@@ -266,7 +266,7 @@ The backend runs on Render and the frontend on Vercel. `Frontend/vercel.json` re
 
 ### How to Use Questack
 
-1. **Enlist.** On the splash screen choose *New recruit*, pick a callsign, email and access code, and accept the terms.
+1. **Enlist.** On the splash screen choose *New recruit*, pick a callsign, email and password, and accept the terms.
 2. **Onboard.** Choose your first sector (C# or JavaScript), your class (Cadet if you're new to programming) and where to start.
 3. **Pick a quest.** On the Galaxy Map, choose *Continue mission* or open a sector, then pick any available quest on the Sector Map.
 4. **Read the Intel briefing**, then work through the objectives:
@@ -410,7 +410,7 @@ The design mockups for the built screens.
 - **Backend** (`Backend/`):
   - **Responsibility**: Authentication, roles, quest content, progress and XP, marking, and every call to Gemini.
   - **Structure**: Express 5 with TypeScript, organised as routes → controllers → services → models. Every request body is validated with zod, and every public and AI route is rate-limited.
-  - **Security**: JWT in an httpOnly cookie, bcrypt-hashed access codes, timing-safe login, and `requireAdmin` re-reading the role from the database on every admin request. Deactivated accounts are locked out on their next request.
+  - **Security**: JWT in an httpOnly cookie, bcrypt-hashed passwords, timing-safe login, and `requireAdmin` re-reading the role from the database on every admin request. Deactivated accounts are locked out on their next request.
 - **Database** (MySQL 8 on Aiven):
   - The base schema (`database/schema/schema.sql`) matches the proposal's ERD. Later changes are numbered, add-only migrations in `database/migrations/`, recorded in `schema_migrations`.
   - Seeded quests use ids below 1000; quests made in the editor or imported from a curriculum use 1000 and up, so re-seeding never overwrites an admin's work.

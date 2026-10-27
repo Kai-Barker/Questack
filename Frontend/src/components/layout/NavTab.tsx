@@ -20,7 +20,7 @@ export default function NavTab({ to, active, children }: NavTabProps) {
         size="md"
         grow="sm"
         borderClassName={active ? 'bg-accent/70' : 'bg-line group-hover:bg-line-bright'}
-        innerClassName={`px-4 py-2 font-display text-xs font-semibold tracking-[0.2em] uppercase sm:px-8 ${
+        innerClassName={`px-4 py-2 font-display text-xs font-semibold tracking-[0.2em] whitespace-nowrap uppercase sm:px-6 2xl:px-8 ${
           active ? 'bg-accent-deep text-accent' : 'bg-space-950 text-slate-300 group-hover:text-slate-100'
         }`}
       >

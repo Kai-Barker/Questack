@@ -21,7 +21,7 @@ const BCRYPT_COST = 12;
 const DUMMY_HASH = bcrypt.hashSync('questack-timing-guard', BCRYPT_COST);
 
 const DUPLICATE_MESSAGE = 'That callsign or email is already enlisted.';
-export const LOGIN_FAILED_MESSAGE = 'Pilot ID or access code is incorrect.';
+export const LOGIN_FAILED_MESSAGE = 'Pilot ID or password is incorrect.';
 
 export async function registerPilot(input: { callsign: string; email: string; password: string }): Promise<PublicUser> {
   // One generic message for either clash, so enlisting can't be used to check
@@ -49,7 +49,7 @@ export async function authenticate(identifier: string, password: string): Promis
   return toPublicUser(user);
 }
 
-// Re-checks a signed-in pilot's access code before a sensitive change
+// Re-checks a signed-in pilot's password before a sensitive change
 export async function verifyPassword(userId: number, password: string): Promise<boolean> {
   const user = await findById(userId);
   const matches = await bcrypt.compare(password, user?.passwordHash ?? DUMMY_HASH);

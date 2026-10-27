@@ -5,9 +5,10 @@ import { useNavHeight } from '../../hooks/useNavHeight';
 import { usePilot } from '../../hooks/usePilot';
 import { formatNumber, initials } from '../../utils/format';
 import ChamferFrame from '../ui/ChamferFrame';
+import LogoMark from '../ui/LogoMark';
 import ProgressBar from '../ui/ProgressBar';
 import NavTab from './NavTab';
-import { BoltIcon, HomeIcon, SignOutIcon } from '../ui/icons';
+import { BoltIcon, SignOutIcon } from '../ui/icons';
 
 // `within` lists the screens that live inside a tab, so Galaxy Map stays lit
 // while the pilot is in a sector or on a quest
@@ -44,14 +45,12 @@ export default function TopNav({ slotRef, slotInUse }: TopNavProps) {
 
   return (
     <header ref={headerRef} className="border-b border-line/60">
-      <div className="mx-auto flex max-w-[90rem] flex-wrap items-center gap-4 px-4 py-4 sm:px-6">
+      <div className="mx-auto flex max-w-page flex-wrap items-center gap-4 px-4 py-4 sm:px-6">
         <Link
           to="/"
           className="flex items-center gap-3 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent"
         >
-          <ChamferFrame size="sm" innerClassName="grid size-9 place-items-center bg-panel text-slate-300">
-            <HomeIcon />
-          </ChamferFrame>
+          <LogoMark size={36} />
           <span className="font-display text-xl font-bold tracking-[0.2em]">QUESTACK</span>
         </Link>
 

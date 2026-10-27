@@ -55,7 +55,7 @@ describe('unlock rules', () => {
 });
 
 describe('changeCallsign', () => {
-  it('checks the access code before looking at who has the callsign', async () => {
+  it('checks the password before looking at who has the callsign', async () => {
     await expect(changeCallsign(7, 'Orion', 'wrong-code1')).rejects.toMatchObject({ status: 400 });
     expect(profiles.usernameTakenByOther).not.toHaveBeenCalled();
   });

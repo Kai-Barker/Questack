@@ -15,7 +15,7 @@ import { useApiRequest } from '../hooks/useApiRequest';
 import { getSector } from '../services/sectorService';
 import { clearedQuestIds, defaultSelectedQuest, questState } from '../utils/quests';
 
-const pageClasses = 'mx-auto grid max-w-[90rem] gap-6 px-4 py-6 sm:px-6 xl:grid-cols-[minmax(0,1fr)_22rem]';
+const pageClasses = 'mx-auto grid max-w-page gap-6 px-4 py-6 sm:px-6 xl:grid-cols-[minmax(0,1fr)_22rem] min-[1800px]:grid-cols-[minmax(0,1fr)_26rem]';
 
 function SectorSkeleton() {
   const block = 'chamfer bg-panel motion-safe:animate-pulse';

@@ -30,6 +30,16 @@
   --color-wedge-cleared-hover: #144554;
   --color-wedge-uncharted: #10182a;
 
+  /* Width of the top bars and pages (max-w-page): 1440px on laptops, growing
+     with the screen on big monitors so a 2560px display isn't mostly empty */
+  --container-page: clamp(90rem, 85vw, 140rem);
+
+  /* The galaxy map (max-w-galaxy-map) and a sector's quest map (h-sector-map)
+     size to the screen's height, so on a 768px laptop the whole map and its
+     legend fit under the nav without scrolling */
+  --container-galaxy-map: clamp(24rem, calc(100dvh - var(--nav-h, 81px) - 11rem), 56rem);
+  --spacing-sector-map: clamp(22rem, calc(100dvh - var(--nav-h, 81px) - 18rem), 48rem);
+
   /* Terminal cursor on the sign-in screens */
   --animate-blink: blink 1.1s steps(1, end) infinite;
 

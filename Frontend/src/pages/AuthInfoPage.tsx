@@ -15,7 +15,7 @@ const pages = {
   privacy: {
     tab: 'Privacy policy',
     title: 'Privacy policy',
-    body: "The full policy is being written. In short: your callsign is public, your email is private, and your access code is stored only as a bcrypt hash. Code you paste for the Ship's AI is sent to Google's Gemini to explain it and is never saved.",
+    body: "The full policy is being written. In short: your callsign is public, your email is private, and your password is stored only as a bcrypt hash. Code you paste for the Ship's AI is sent to Google's Gemini to explain it and is never saved.",
   },
 };
 

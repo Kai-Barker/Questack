@@ -135,14 +135,14 @@ export default function QuestEditorPage() {
 
   if (loading) {
     return (
-      <main className="mx-auto max-w-[90rem] px-4 py-6 sm:px-6">
+      <main className="mx-auto max-w-page px-4 py-6 sm:px-6">
         <Loading text="Loading quests…" />
       </main>
     );
   }
   if (error || !data) {
     return (
-      <main className="mx-auto max-w-[90rem] px-4 py-6 sm:px-6">
+      <main className="mx-auto max-w-page px-4 py-6 sm:px-6">
         <LoadFailed message={error ?? 'Could not load the quests.'} onRetry={reload} />
       </main>
     );
@@ -165,7 +165,7 @@ export default function QuestEditorPage() {
   }
 
   return (
-    <main className="mx-auto grid max-w-[90rem] items-start gap-6 px-4 py-6 sm:px-6 lg:grid-cols-[19rem_minmax(0,1fr)]">
+    <main className="mx-auto grid max-w-page items-start gap-6 px-4 py-6 sm:px-6 lg:grid-cols-[19rem_minmax(0,1fr)]">
       <QuestListPanel
         sectors={data.sectors}
         quests={data.quests}

@@ -31,7 +31,7 @@ describe('LoginPage', () => {
     await user.click(screen.getByRole('button', { name: 'Authenticate' }));
 
     expect(screen.getByText('Enter your callsign or email.')).toBeInTheDocument();
-    expect(screen.getByText('Enter your access code.')).toBeInTheDocument();
+    expect(screen.getByText('Enter your password.')).toBeInTheDocument();
     expect(screen.getByLabelText('Pilot ID / email')).toHaveAttribute('aria-invalid', 'true');
     expect(auth.login).not.toHaveBeenCalled();
   });
@@ -42,13 +42,13 @@ describe('LoginPage', () => {
     await user.type(screen.getByLabelText('Pilot ID / email'), 'V');
 
     expect(screen.queryByText('Enter your callsign or email.')).not.toBeInTheDocument();
-    expect(screen.getByText('Enter your access code.')).toBeInTheDocument();
+    expect(screen.getByText('Enter your password.')).toBeInTheDocument();
   });
 
   it('signs in and goes where the pilot was heading', async () => {
     const { user, auth } = renderLogin('/login?next=%2Fprofile');
     await user.type(screen.getByLabelText('Pilot ID / email'), '  Vega-7  ');
-    await user.type(screen.getByLabelText('Access code'), 'access123');
+    await user.type(screen.getByLabelText('Password'), 'access123');
     await user.click(screen.getByRole('checkbox', { name: 'Keep this terminal signed in' }));
     await user.click(screen.getByRole('button', { name: 'Authenticate' }));
 
@@ -59,26 +59,26 @@ describe('LoginPage', () => {
   it('goes to the galaxy map by default, and never off-site', async () => {
     const { user } = renderLogin('/login?next=https%3A%2F%2Fevil.example');
     await user.type(screen.getByLabelText('Pilot ID / email'), 'Vega-7');
-    await user.type(screen.getByLabelText('Access code'), 'access123');
+    await user.type(screen.getByLabelText('Password'), 'access123');
     await user.click(screen.getByRole('button', { name: 'Authenticate' }));
 
     await waitFor(() => expect(currentLocation()).toBe('/'));
   });
 
   it.each([
-    [401, 'Pilot ID or access code is incorrect.', '> access denied'],
+    [401, 'Pilot ID or password is incorrect.', '> access denied'],
     [429, 'Too many access attempts from this terminal. Wait 15 minutes, then try again.', '> terminal locked: too many attempts'],
     [500, 'Something went wrong aboard the ship.', '> transmission failed'],
-  ])('shows a %i, clears the access code and lets the pilot try again', async (status, message, line) => {
+  ])('shows a %i, clears the password and lets the pilot try again', async (status, message, line) => {
     const auth = fakeAuth({ status: 'anonymous', user: null, login: vi.fn().mockRejectedValue(axiosError(status, { error: message })) });
     const { user } = renderLogin('/login', auth);
     await user.type(screen.getByLabelText('Pilot ID / email'), 'Vega-7');
-    await user.type(screen.getByLabelText('Access code'), 'wrong1234');
+    await user.type(screen.getByLabelText('Password'), 'wrong1234');
     await user.click(screen.getByRole('button', { name: 'Authenticate' }));
 
     expect(await screen.findByRole('alert')).toHaveTextContent(message);
     expect(statusLine()).toHaveTextContent(line);
-    expect(screen.getByLabelText('Access code')).toHaveValue('');
+    expect(screen.getByLabelText('Password')).toHaveValue('');
     expect(screen.getByRole('button', { name: 'Authenticate' })).toBeEnabled();
   });
 
@@ -86,7 +86,7 @@ describe('LoginPage', () => {
     const auth = fakeAuth({ status: 'anonymous', user: null, login: vi.fn().mockRejectedValue(axiosError()) });
     const { user } = renderLogin('/login', auth);
     await user.type(screen.getByLabelText('Pilot ID / email'), 'Vega-7');
-    await user.type(screen.getByLabelText('Access code'), 'access123');
+    await user.type(screen.getByLabelText('Password'), 'access123');
     await user.click(screen.getByRole('button', { name: 'Authenticate' }));
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Could not reach Questack command.');
@@ -98,7 +98,7 @@ describe('LoginPage', () => {
     const auth = fakeAuth({ status: 'anonymous', user: null, login: vi.fn().mockRejectedValue(error) });
     const { user } = renderLogin('/login', auth);
     await user.type(screen.getByLabelText('Pilot ID / email'), 'Vega-7');
-    await user.type(screen.getByLabelText('Access code'), 'access123');
+    await user.type(screen.getByLabelText('Password'), 'access123');
     await user.click(screen.getByRole('button', { name: 'Authenticate' }));
 
     expect(await screen.findByText('Too long.')).toBeInTheDocument();
@@ -109,22 +109,22 @@ describe('LoginPage', () => {
     const auth = fakeAuth({ status: 'anonymous', user: null, login: vi.fn(() => new Promise<typeof USER>(() => {})) });
     const { user } = renderLogin('/login', auth);
     await user.type(screen.getByLabelText('Pilot ID / email'), 'Vega-7');
-    await user.type(screen.getByLabelText('Access code'), 'access123');
+    await user.type(screen.getByLabelText('Password'), 'access123');
     await user.click(screen.getByRole('button', { name: 'Authenticate' }));
 
     expect(screen.getByRole('button', { name: 'Authenticating…' })).toBeDisabled();
     expect(statusLine()).toHaveTextContent('> authenticating…');
   });
 
-  it('reveals and hides the access code', async () => {
+  it('reveals and hides the password', async () => {
     const { user } = renderLogin();
-    const field = screen.getByLabelText('Access code');
+    const field = screen.getByLabelText('Password');
     expect(field).toHaveAttribute('type', 'password');
 
-    // jsdom drops the space before the visually hidden " access code"
-    await user.click(screen.getByRole('button', { name: /^Reveal\s*access code$/ }));
+    // jsdom drops the space before the visually hidden " password"
+    await user.click(screen.getByRole('button', { name: /^Reveal\s*password$/ }));
     expect(field).toHaveAttribute('type', 'text');
-    expect(screen.getByRole('button', { name: /^Hide\s*access code$/ })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('button', { name: /^Hide\s*password$/ })).toHaveAttribute('aria-pressed', 'true');
   });
 
   it('keeps ?next= on the Enlist link and links to recovery', () => {
@@ -154,7 +154,7 @@ describe('EnlistPage', () => {
     const all = { callsign: 'Nova_9', email: 'nova@example.com', password: 'launch2026', confirm: 'launch2026', ...values };
     if (all.callsign) await user.type(screen.getByLabelText('Callsign'), all.callsign);
     if (all.email) await user.type(screen.getByLabelText('Email'), all.email);
-    if (all.password) await user.type(screen.getByLabelText('Access code'), all.password);
+    if (all.password) await user.type(screen.getByLabelText('Password'), all.password);
     if (all.confirm) await user.type(screen.getByLabelText('Confirm'), all.confirm);
   }
 
@@ -171,13 +171,13 @@ describe('EnlistPage', () => {
     expect(auth.register).not.toHaveBeenCalled();
   });
 
-  it('catches access codes that don’t match', async () => {
+  it('catches passwords that don’t match', async () => {
     const { user } = renderEnlist();
     await fillIn(user, { confirm: 'launch2027' });
     await user.click(terms());
     await user.click(submit());
 
-    expect(screen.getByText("The codes don't match.")).toBeInTheDocument();
+    expect(screen.getByText("The passwords don't match.")).toBeInTheDocument();
   });
 
   it('ticks a valid callsign', async () => {
@@ -189,7 +189,7 @@ describe('EnlistPage', () => {
     expect(screen.getByText('Looks good')).toBeInTheDocument();
   });
 
-  it('shows the access code checks as they are met', async () => {
+  it('shows the password checks as they are met', async () => {
     const { user } = renderEnlist();
     const check = (label: string) => screen.getByText(label).closest('li')!;
     expect(check('8 characters or more')).toHaveTextContent('(not met yet)');
@@ -197,7 +197,7 @@ describe('EnlistPage', () => {
     await fillIn(user, { callsign: '', email: '' });
     expect(check('8 characters or more')).toHaveTextContent('(met)');
     expect(check('Contains a number')).toHaveTextContent('(met)');
-    expect(check('Codes match')).toHaveTextContent('(met)');
+    expect(check('Passwords match')).toHaveTextContent('(met)');
   });
 
   it('enlists the pilot and goes on', async () => {

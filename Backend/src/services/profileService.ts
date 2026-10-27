@@ -339,11 +339,11 @@ export async function updateProfile(userId: number, update: ProfileUpdate): Prom
 
 const CALLSIGN_TAKEN = { callsign: 'That callsign is already taken.' };
 
-// Needs the pilot's current access code. Wrong codes count towards the
+// Needs the pilot's current password. Wrong passwords count towards the
 // callsign rate limit, so this can't be used to guess a password.
 export async function changeCallsign(userId: number, callsign: string, password: string): Promise<void> {
   if (!(await verifyPassword(userId, password))) {
-    throw new HttpError(400, 'Check the highlighted fields.', { password: 'That access code is incorrect.' });
+    throw new HttpError(400, 'Check the highlighted fields.', { password: 'That password is incorrect.' });
   }
   if (await usernameTakenByOther(callsign, userId)) {
     throw new HttpError(409, 'That callsign is already taken.', CALLSIGN_TAKEN);

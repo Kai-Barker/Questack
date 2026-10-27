@@ -24,12 +24,6 @@ function Icon({ children, ...props }: IconProps & { children: ReactNode }) {
   );
 }
 
-export const HomeIcon = (props: IconProps) => (
-  <Icon {...props}>
-    <path d="M3 11l9-8 9 8M5 10v10h14V10" />
-  </Icon>
-);
-
 export const LockIcon = (props: IconProps) => (
   <Icon {...props}>
     <rect x="5" y="11" width="14" height="10" rx="1.5" />

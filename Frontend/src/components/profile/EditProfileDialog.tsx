@@ -145,7 +145,7 @@ export default function EditProfileDialog({ profile, focusSection = 'callsign', 
       return;
     }
     if (!password) {
-      setCallsignErrors({ password: 'Enter your access code to confirm.' });
+      setCallsignErrors({ password: 'Enter your password to confirm.' });
       return;
     }
     setCallsignSaving(true);
@@ -274,7 +274,7 @@ export default function EditProfileDialog({ profile, focusSection = 'callsign', 
               <div className="min-w-0">
                 <AuthField
                   id={`${ids.callsign}-password`}
-                  label="Access code"
+                  label="Password"
                   hint="To confirm"
                   type={passwordShown ? 'text' : 'password'}
                   value={password}
@@ -298,7 +298,7 @@ export default function EditProfileDialog({ profile, focusSection = 'callsign', 
           </div>
           <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-xs text-muted">
-              You sign in with your callsign, so changing it needs your access code and is limited to 5 attempts a
+              You sign in with your callsign, so changing it needs your password and is limited to 5 attempts a
               day.
             </p>
             <Button

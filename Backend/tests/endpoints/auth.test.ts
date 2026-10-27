@@ -7,7 +7,7 @@ import { PASSWORD, PILOT } from '../helpers/fixtures.js';
 
 // /api/auth: enlist, sign in, sign out, and "who am I"
 
-const LOGIN_FAILED = 'Pilot ID or access code is incorrect.';
+const LOGIN_FAILED = 'Pilot ID or password is incorrect.';
 
 function cookieHeader(res: request.Response): string {
   const cookies = res.headers['set-cookie'] as unknown as string[] | undefined;
@@ -121,7 +121,7 @@ describe('POST /api/auth/login', () => {
     const res = await request(app).post('/api/auth/login').send({ identifier: '', password: '' });
 
     expect(res.status).toBe(400);
-    expect(res.body.fields).toEqual({ identifier: 'Enter your callsign or email.', password: 'Enter your access code.' });
+    expect(res.body.fields).toEqual({ identifier: 'Enter your callsign or email.', password: 'Enter your password.' });
   });
 });
 

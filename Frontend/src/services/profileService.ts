@@ -15,7 +15,7 @@ export async function updateProfile(update: ProfileUpdate): Promise<PilotProfile
   return res.data.profile;
 }
 
-// Needs the pilot's current access code, since a callsign is also a login name
+// Needs the pilot's current password, since a callsign is also a login name
 export async function changeCallsign(callsign: string, password: string): Promise<PilotProfile> {
   const res = await api.patch<{ profile: PilotProfile }>('/profile/me/callsign', { callsign, password });
   return res.data.profile;

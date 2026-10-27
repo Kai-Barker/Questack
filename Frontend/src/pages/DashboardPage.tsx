@@ -14,7 +14,7 @@ import { useDashboard } from '../hooks/useDashboard';
 import { usePilot } from '../hooks/usePilot';
 
 const pageClasses =
-  'mx-auto grid max-w-[90rem] gap-6 px-4 py-6 sm:px-6 lg:grid-cols-[17rem_minmax(0,1fr)_17rem]';
+  'mx-auto grid max-w-page gap-6 px-4 py-6 sm:px-6 lg:grid-cols-[17rem_minmax(0,1fr)_17rem] min-[1800px]:grid-cols-[20rem_minmax(0,1fr)_20rem]';
 
 function DashboardSkeleton() {
   const block = 'chamfer bg-panel motion-safe:animate-pulse';
@@ -27,7 +27,7 @@ function DashboardSkeleton() {
         <div className={`${block} h-72`} />
         <div className={`${block} h-80`} />
       </div>
-      <div className="mx-auto aspect-square w-full max-w-[42rem] rounded-full bg-panel motion-safe:animate-pulse" />
+      <div className="mx-auto aspect-square w-full max-w-galaxy-map rounded-full bg-panel motion-safe:animate-pulse" />
       <div className="space-y-6">
         <div className={`${block} h-56`} />
         <div className={`${block} h-52`} />

@@ -15,7 +15,7 @@ import { safeNextPath } from '../utils/redirect';
 // This screen is step 01. Steps 02 and 03 are onboarding (OnboardingPage),
 // which new pilots are sent to once signed in (see RequireEnlisted)
 const SEQUENCE = [
-  { number: '01', title: 'Pilot record', detail: 'Callsign and access code' },
+  { number: '01', title: 'Pilot record', detail: 'Callsign and password' },
   { number: '02', title: 'First sector', detail: 'Choose a language and rank' },
   { number: '03', title: 'Launch', detail: 'Deploy on your first quest' },
 ];
@@ -50,7 +50,7 @@ function EnlistAside({ password, confirm }: { password: string; confirm: string 
 
       <hr className="my-6 border-line" />
 
-      <h2 className="font-display text-xs tracking-[0.2em] text-slate-300 uppercase">Access code checks</h2>
+      <h2 className="font-display text-xs tracking-[0.2em] text-slate-300 uppercase">Password checks</h2>
       <ul className="mt-3 space-y-2 font-mono text-xs">
         {accessCodeChecks(password, confirm).map((check) => (
           <li key={check.label} className={`flex items-center gap-2 ${check.met ? 'text-buff' : 'text-muted'}`}>
@@ -96,7 +96,7 @@ export default function EnlistPage() {
       callsign: callsignError(callsign),
       email: emailError(email),
       password: passwordError(password),
-      confirm: confirm === password ? undefined : "The codes don't match.",
+      confirm: confirm === password ? undefined : "The passwords don't match.",
       acceptTerms: acceptTerms ? undefined : 'Accept the terms to enlist.',
     };
     for (const [field, message] of Object.entries(checks)) if (message) errors[field] = message;
@@ -177,7 +177,7 @@ export default function EnlistPage() {
         <div className="grid gap-5 sm:grid-cols-2">
           <AuthField
             id="password"
-            label="Access code"
+            label="Password"
             type={reveal ? 'text' : 'password'}
             value={password}
             onChange={edit('password', setPassword)}

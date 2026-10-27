@@ -33,7 +33,7 @@ export default function QuestListView({ quests, states, selectedId, onSelect }: 
   }, []);
 
   return (
-    <div ref={scrollerRef} className="relative max-h-[30rem] overflow-y-auto lg:max-h-[34rem]">
+    <div ref={scrollerRef} className="relative max-h-[30rem] overflow-y-auto lg:max-h-sector-map">
       {/* Padding top and bottom leaves room for a row's hover grow inside the scroll box */}
       <ul aria-label="Quests in this sector" className="space-y-2 px-4 pt-1 pb-2">
         {quests.map((quest) => {

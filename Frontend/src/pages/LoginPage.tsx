@@ -42,7 +42,7 @@ export default function LoginPage() {
     event.preventDefault();
     const empty: Record<string, string> = {};
     if (!identifier.trim()) empty.identifier = 'Enter your callsign or email.';
-    if (!password) empty.password = 'Enter your access code.';
+    if (!password) empty.password = 'Enter your password.';
     setMissing(empty);
     if (Object.keys(empty).length > 0) return;
 
@@ -102,7 +102,7 @@ export default function LoginPage() {
         />
         <AuthField
           id="password"
-          label="Access code"
+          label="Password"
           type={reveal ? 'text' : 'password'}
           value={password}
           onChange={edit('password', setPassword)}

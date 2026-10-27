@@ -5,6 +5,7 @@ import { useNavHeight } from '../../hooks/useNavHeight';
 import { initials } from '../../utils/format';
 import NavTab from '../layout/NavTab';
 import ChamferFrame from '../ui/ChamferFrame';
+import LogoMark from '../ui/LogoMark';
 
 const tabs = [
   { to: '/admin/quests', label: 'Quests' },
@@ -22,11 +23,12 @@ export default function AdminNav() {
 
   return (
     <header ref={headerRef} className="border-b border-line/60">
-      <div className="mx-auto flex max-w-[90rem] flex-wrap items-center gap-4 px-4 py-4 sm:px-6">
+      <div className="mx-auto flex max-w-page flex-wrap items-center gap-4 px-4 py-4 sm:px-6">
         <Link
           to="/admin/quests"
           className="flex items-center gap-3 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent"
         >
+          <LogoMark size={36} />
           <span className="font-display text-xl font-bold tracking-[0.2em]">QUESTACK</span>
           <ChamferFrame
             as="span"

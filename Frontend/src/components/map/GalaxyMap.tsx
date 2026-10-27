@@ -162,7 +162,7 @@ export default function GalaxyMap({ sectors }: GalaxyMapProps) {
   );
 
   return (
-    <div className="relative mx-auto w-full max-w-[42rem]">
+    <div className="relative mx-auto w-full max-w-galaxy-map">
       <svg
         viewBox={`0 0 ${MAP_SIZE} ${MAP_SIZE}`}
         role="group"

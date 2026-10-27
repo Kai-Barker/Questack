@@ -111,7 +111,7 @@ describe('ProfilePage', () => {
     const callsign = screen.getByLabelText(/New callsign/);
     await user.clear(callsign);
     await user.type(callsign, 'Orion');
-    await user.type(screen.getByLabelText(/^Access code/), 'access123');
+    await user.type(screen.getByLabelText(/^Password/), 'access123');
     await user.click(screen.getByRole('button', { name: 'Update callsign' }));
 
     expect(await screen.findByText('Callsign updated. Sign in as Orion from now on.')).toBeInTheDocument();
@@ -130,18 +130,18 @@ describe('EditProfileDialog', () => {
   const updateCallsign = () => screen.getByRole('button', { name: 'Update callsign' });
 
   describe('callsign', () => {
-    it('can only be updated once changed, and then asks for the access code', async () => {
+    it('can only be updated once changed, and then asks for the password', async () => {
       const { user } = renderEditor();
       expect(updateCallsign()).toBeDisabled();
-      expect(screen.queryByLabelText(/^Access code/)).not.toBeInTheDocument();
+      expect(screen.queryByLabelText(/^Password/)).not.toBeInTheDocument();
 
       await user.type(screen.getByLabelText(/New callsign/), 'X');
       expect(updateCallsign()).toBeEnabled();
-      expect(screen.getByLabelText(/^Access code/)).toBeInTheDocument();
+      expect(screen.getByLabelText(/^Password/)).toBeInTheDocument();
       expect(screen.getByText('Looks good')).toBeInTheDocument();
     });
 
-    it('checks the format and the access code before sending', async () => {
+    it('checks the format and the password before sending', async () => {
       const calls = respond('patch', '/profile/me/callsign', 200, { profile: PROFILE });
       const { user } = renderEditor();
       const field = screen.getByLabelText(/New callsign/);
@@ -154,7 +154,7 @@ describe('EditProfileDialog', () => {
       await user.clear(field);
       await user.type(field, 'Orion');
       await user.click(updateCallsign());
-      expect(screen.getByText('Enter your access code to confirm.')).toBeInTheDocument();
+      expect(screen.getByText('Enter your password to confirm.')).toBeInTheDocument();
       expect(calls).toHaveLength(0);
     });
 
@@ -164,7 +164,7 @@ describe('EditProfileDialog', () => {
       const field = screen.getByLabelText(/New callsign/);
       await user.clear(field);
       await user.type(field, 'Orion');
-      await user.type(screen.getByLabelText(/^Access code/), 'access123{Enter}');
+      await user.type(screen.getByLabelText(/^Password/), 'access123{Enter}');
 
       expect(await screen.findByRole('status')).toHaveTextContent('Callsign updated. Sign in as Orion from now on.');
       expect(calls[0]!.body).toEqual({ callsign: 'Orion', password: 'access123' });
@@ -173,7 +173,7 @@ describe('EditProfileDialog', () => {
     });
 
     it.each([
-      [400, { error: 'Check the highlighted fields.', fields: { password: 'That access code is incorrect.' } }, 'That access code is incorrect.', false],
+      [400, { error: 'Check the highlighted fields.', fields: { password: 'That password is incorrect.' } }, 'That password is incorrect.', false],
       [409, { error: 'That callsign is already taken.', fields: { callsign: 'That callsign is already taken.' } }, 'That callsign is already taken.', false],
       [429, { error: 'Callsign changes are limited to 5 attempts a day. Try again tomorrow.' }, 'Callsign changes are limited to 5 attempts a day. Try again tomorrow.', true],
     ])('shows a %i from the server', async (status, body, message, asAlert) => {
@@ -182,7 +182,7 @@ describe('EditProfileDialog', () => {
       const field = screen.getByLabelText(/New callsign/);
       await user.clear(field);
       await user.type(field, 'Orion');
-      await user.type(screen.getByLabelText(/^Access code/), 'access123');
+      await user.type(screen.getByLabelText(/^Password/), 'access123');
       await user.click(updateCallsign());
 
       expect(await screen.findByText(message)).toBeInTheDocument();

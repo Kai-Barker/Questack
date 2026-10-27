@@ -24,7 +24,7 @@ export function accessCodeChecks(password: string, confirm: string) {
   return [
     { label: '8 characters or more', met: password.length >= 8 },
     { label: 'Contains a number', met: /\d/.test(password) },
-    { label: 'Codes match', met: confirm.length > 0 && confirm === password },
+    { label: 'Passwords match', met: confirm.length > 0 && confirm === password },
   ];
 }
 

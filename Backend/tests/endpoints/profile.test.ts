@@ -248,7 +248,7 @@ describe('PATCH /api/profile/me', () => {
 });
 
 describe('PATCH /api/profile/me/callsign', () => {
-  it('changes the callsign when the access code is right', async () => {
+  it('changes the callsign when the password is right', async () => {
     const res = await patchCallsign({ callsign: 'Orion_2', password: PASSWORD });
 
     expect(res.status).toBe(200);
@@ -256,11 +256,11 @@ describe('PATCH /api/profile/me/callsign', () => {
     expect(res.body.profile).toBeDefined();
   });
 
-  it('rejects a wrong access code (400) without changing anything', async () => {
+  it('rejects a wrong password (400) without changing anything', async () => {
     const res = await patchCallsign({ callsign: 'Orion_2', password: 'wrongpass9' });
 
     expect(res.status).toBe(400);
-    expect(res.body.fields).toEqual({ password: 'That access code is incorrect.' });
+    expect(res.body.fields).toEqual({ password: 'That password is incorrect.' });
     expect(profiles.updateUsername).not.toHaveBeenCalled();
   });
 
@@ -281,7 +281,7 @@ describe('PATCH /api/profile/me/callsign', () => {
 
   it.each([
     ['an invalid callsign', { callsign: 'no spaces', password: PASSWORD }, 'callsign', 'Use letters, numbers, - and _ only.'],
-    ['a missing access code', { callsign: 'Orion_2' }, 'password', 'Enter your access code.'],
+    ['a missing password', { callsign: 'Orion_2' }, 'password', 'Enter your password.'],
     ['an extra field', { callsign: 'Orion_2', password: PASSWORD, email: 'x@y.z' }, 'form', UNCHANGEABLE],
   ])('rejects %s (400)', async (_name, body, field, message) => {
     const res = await patchCallsign(body);

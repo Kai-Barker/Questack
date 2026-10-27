@@ -27,7 +27,7 @@ All of these run `appIpLimiter` (300/min per IP) first, then `requireAuth`. With
 | GET | `/pilot/me` | none | Nav and dashboard summary: level, XP, rank, sectors enlisted, booster, equipped frame and visor | 120/min per pilot |
 | GET | `/profile/me` | none | Full profile: stats, insignia, flight log, XP history, gear (frames and visors, each with `earned`), loadout | 120/min |
 | PATCH | `/profile/me` | `{ bio?, titleId?, goalLanguageId?, frameId?, visorId?, featuredIds? }` | Strict: any other field is rejected (e.g. `role`). Gear must be unlocked and in the right slot; `null` goes back to the Standard item. | 20/15 min |
-| PATCH | `/profile/me/callsign` | `{ callsign, password }` | Needs the current access code | 5/day |
+| PATCH | `/profile/me/callsign` | `{ callsign, password }` | Needs the current password | 5/day |
 | POST | `/profile/me/boosters/:boosterId/activate` | none | Starts an owned booster | 30/15 min |
 
 ### Galaxy Map, sectors and quests

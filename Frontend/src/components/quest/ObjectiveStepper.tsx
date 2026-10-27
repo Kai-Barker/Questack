@@ -69,7 +69,9 @@ export default function ObjectiveStepper({ statuses, viewing, onView }: Objectiv
                 aria-current={isViewing ? 'step' : undefined}
                 aria-label={`Objective ${i + 1}${label ? `, ${label.toLowerCase()}` : ', locked'}`}
                 onClick={() => onView(i)}
-                className="group relative block h-9 min-w-14 outline-none disabled:cursor-not-allowed sm:min-w-32"
+                className={`group relative block h-9 min-w-14 outline-none disabled:cursor-not-allowed ${
+                  isViewing ? 'sm:min-w-32' : 'min-[1800px]:min-w-32'
+                }`}
               >
                 {/* Keyboard focus: a thicker white outline in the chevron shape */}
                 <ChevronShape
@@ -77,13 +79,16 @@ export default function ObjectiveStepper({ statuses, viewing, onView }: Objectiv
                   className={`${style.shape} group-focus-visible:stroke-slate-100 group-focus-visible:[stroke-width:2]`}
                 />
                 <span
-                  className={`relative block font-display text-xs font-semibold tracking-[0.2em] uppercase ${
+                  className={`relative block font-display text-xs font-semibold tracking-[0.2em] whitespace-nowrap uppercase ${
                     kind === 'backward' ? 'pr-6 pl-7' : kind === 'forwardFirst' ? 'pr-6 pl-5' : 'pr-6 pl-7'
                   } ${style.text}`}
                 >
                   {String(i + 1).padStart(2, '0')}
-                  {/* Labels are dropped on small screens so the stepper fits; aria-label still says it */}
-                  {label && <span className="hidden sm:inline"> {label}</span>}
+                  {/* Labels are dropped where they won't fit beside the rank and XP (only the
+                      viewed step keeps one below 1800px, none on phones); aria-label still says it */}
+                  {label && (
+                    <span className={isViewing ? 'hidden sm:inline' : 'hidden min-[1800px]:inline'}> {label}</span>
+                  )}
                 </span>
               </button>
             </li>

@@ -40,11 +40,11 @@ describe('AuthField', () => {
     expect(screen.queryByText('Looks good')).not.toBeInTheDocument();
   });
 
-  it('has a reveal toggle for access codes', async () => {
+  it('has a reveal toggle for passwords', async () => {
     const onToggle = vi.fn();
-    render(<AuthField id="pw" label="Access code" value="" onChange={() => {}} reveal={{ shown: false, onToggle }} />);
+    render(<AuthField id="pw" label="Password" value="" onChange={() => {}} reveal={{ shown: false, onToggle }} />);
 
-    await userEvent.click(screen.getByRole('button', { name: /^Reveal\s*access code$/ }));
+    await userEvent.click(screen.getByRole('button', { name: /^Reveal\s*password$/ }));
     expect(onToggle).toHaveBeenCalled();
   });
 });

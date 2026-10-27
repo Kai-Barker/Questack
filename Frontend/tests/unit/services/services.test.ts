@@ -49,10 +49,10 @@ describe('authService', () => {
   });
 
   it('login rejects with the server’s error', async () => {
-    respond('post', '/auth/login', 401, { error: 'Pilot ID or access code is incorrect.' });
+    respond('post', '/auth/login', 401, { error: 'Pilot ID or password is incorrect.' });
     const err = await auth.login({ identifier: 'x', password: 'y', remember: false }).catch((e: unknown) => e);
 
-    expect(toRequestFailure(err)).toMatchObject({ kind: 'denied', message: 'Pilot ID or access code is incorrect.' });
+    expect(toRequestFailure(err)).toMatchObject({ kind: 'denied', message: 'Pilot ID or password is incorrect.' });
   });
 
   it('register posts the form and returns the new user', async () => {
@@ -192,7 +192,7 @@ describe('profileService', () => {
     expect(calls[0]!.body).toEqual({ bio: 'New bio', featuredIds: [1] });
   });
 
-  it('changeCallsign sends the callsign with the access code', async () => {
+  it('changeCallsign sends the callsign with the password', async () => {
     const calls = respond('patch', '/profile/me/callsign', 200, { profile: PROFILE });
     await profile.changeCallsign('Orion', 'access123');
     expect(calls[0]!.body).toEqual({ callsign: 'Orion', password: 'access123' });
