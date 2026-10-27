@@ -10,10 +10,9 @@
 
 <p align="center"><strong>Stack up your coding skills, one quest at a time.</strong></p>
 
-<!-- Paste the live Vercel URL between the parentheses below. -->
-<p align="center"><a href="">🚀 Launch Questack</a></p>
+<p align="center"><a href="https://www.questack.co.za">🚀 Launch Questack</a></p>
 
-DV300 Theme 4: AI-Driven Application · Kai Barker (241065)
+DV300 Theme 4: AI-Driven Application · Kai Barker (241065) · Area: 📚 Education
 
 ## Table of Contents
 
@@ -280,29 +279,29 @@ The backend runs on Render and the frontend on Vercel. `Frontend/vercel.json` re
 
 ### Screenshots & Explanations
 
-<!-- Save screenshots in /readme-images using the file names below. -->
-
 **Splash / Log In / Enlist**
 
-| Splash | Log In | Enlist |
-|:---:|:---:|:---:|
-| ![Splash](./readme-images/Questack_Splash.png) | ![Log In](./readme-images/Questack_Login.png) | ![Enlist](./readme-images/Questack_Enlist.png) |
+| Splash | Splash (ready) |
+|:---:|:---:|
+| ![Splash](./docs/screenshots/Splash.png) | ![Splash, ready](./docs/screenshots/Splash%20With%20Buttons.png) |
+
+| Log In | Enlist |
+|:---:|:---:|
+| ![Log In](./docs/screenshots/Log_in.png) | ![Enlist](./docs/screenshots/Sign_Up.png) |
 
 The splash screen checks the servers before sign-in and leads to log in or enlist. The enlist form links to the Terms of Service and Privacy Policy, which open in a new tab so a half-filled form isn't lost.
 
 **Onboarding**
 
-| Sector | Class | Starting Concept |
-|:---:|:---:|:---:|
-| ![Onboarding, Sector](./readme-images/Questack_Onboarding1.png) | ![Onboarding, Class](./readme-images/Questack_Onboarding2.png) | ![Onboarding, Concept](./readme-images/Questack_Onboarding3.png) |
+![Onboarding](./docs/screenshots/Onboarding.png)
 
 New pilots choose a sector, a class and a starting concept, so the Ship's AI explains things at the right level from the first quest.
 
 **Galaxy Map / Sector Map**
 
-| Galaxy Map | Sector Map |
-|:---:|:---:|
-| ![Galaxy Map](./readme-images/Questack_GalaxyMap.png) | ![Sector Map](./readme-images/Questack_SectorMap.png) |
+| Galaxy Map | Sector Map | Sector Map (List View) |
+|:---:|:---:|:---:|
+| ![Galaxy Map](./docs/screenshots/GalaxyMap.png) | ![Sector Map](./docs/screenshots/SectorMap.png) | ![Sector Map, list view](./docs/screenshots/SectorMap_LIST.png) |
 
 The Galaxy Map shows every sector's progress, the mission to continue and the pilot's status. The Sector Map lays quests out by their prerequisites, so it's clear what's cleared, what's available and what's still locked.
 
@@ -310,19 +309,17 @@ The Galaxy Map shows every sector's progress, the mission to continue and the pi
 
 | Intel Briefing | Read and Explain | Bug Hunt |
 |:---:|:---:|:---:|
-| ![Intel Briefing](./readme-images/Questack_Briefing.png) | ![Read and Explain](./readme-images/Questack_ReadAndExplain.png) | ![Bug Hunt](./readme-images/Questack_BugHunt.png) |
+| ![Intel Briefing](./docs/screenshots/Debrief.png) | ![Read and Explain](./docs/screenshots/ReadAndExplain.png) | ![Bug Hunt](./docs/screenshots/BugHunt.png) |
 
-| Ship's AI Hints and Chat | Mission Debrief |
-|:---:|:---:|
-| ![Ship's AI](./readme-images/Questack_ShipsAI.png) | ![Mission Debrief](./readme-images/Questack_Debrief.png) |
+| Ship's AI Marking | Ship's AI Expanded | Mission Debrief |
+|:---:|:---:|:---:|
+| ![Ship's AI marking](./docs/screenshots/ShipsAIMarking.png) | ![Ship's AI expanded](./docs/screenshots/ReadAndExplain_ShipsAIExpanded.png) | ![Mission Debrief](./docs/screenshots/QuestCleared.png) |
 
 The Quest screen holds the objective and answer box on the left, the code on the top right and the Ship's AI on the bottom right. The Ship's AI marks each answer against the admin-written answer key and gives feedback with a guiding question. Clearing every objective opens the mission debrief.
 
 **Decoder**
 
-| Decoder Walkthrough | Transmission Understood |
-|:---:|:---:|
-| ![Decoder](./readme-images/Questack_Decoder.png) | ![Decoder Complete](./readme-images/Questack_DecoderComplete.png) |
+![Decoder](./docs/screenshots/Decoder.png)
 
 Paste any code and the Ship's AI walks through it section by section, then checks understanding with a question.
 
@@ -330,7 +327,7 @@ Paste any code and the Ship's AI walks through it section by section, then check
 
 | Profile | Loadout | Settings |
 |:---:|:---:|:---:|
-| ![Profile](./readme-images/Questack_Profile.png) | ![Loadout](./readme-images/Questack_Loadout.png) | ![Settings](./readme-images/Questack_Settings.png) |
+| ![Profile](./docs/screenshots/Profile.png) | ![Loadout](./docs/screenshots/Loadout%20Select.png) | ![Settings](./docs/screenshots/Settings.png) |
 
 The Profile shows stats, featured insignia, the XP history chart and the flight log. The Loadout equips frames, visors, a title insignia and boosters. Settings holds account details and the class for each sector.
 
@@ -338,7 +335,7 @@ The Profile shows stats, featured insignia, the XP history chart and the flight 
 
 | Quest Editor | Users | AI Usage |
 |:---:|:---:|:---:|
-| ![Quest Editor](./readme-images/Questack_AdminQuests.png) | ![Users](./readme-images/Questack_AdminUsers.png) | ![AI Usage](./readme-images/Questack_AdminAI.png) |
+| ![Quest Editor](./docs/screenshots/Admin_QuestEditor.png) | ![Users](./docs/screenshots/Users_Censored.png) | ![AI Usage](./docs/screenshots/Admin_AI_Usage.png) |
 
 Admins write and publish quests, manage pilots, and watch how much of the Gemini quota is being used.
 
@@ -348,55 +345,68 @@ Admins write and publish quests, manage pilots, and watch how much of the Gemini
 
 The design mockups for the built screens.
 
-<!-- Save mockups in /readme-images/mockups using the file names below. -->
+<img src="./docs/mockups/Multi_Screen/Mockup%20%E2%80%94%20GalaxyMap%20%C2%B7%20SectorMap%20%C2%B7%20SectorMap_LIST%20%C2%B7%20QuestCleared.png" width="100%" alt="Galaxy Map, Sector Map and Quest Cleared mockup">
 
-**Splash**
+<table>
+  <tr>
+    <td width="50%"><img src="./docs/mockups/Multi_Screen/Mockup%20%E2%80%94%20Splash%20With%20Buttons%20%C2%B7%20Log_in%20%C2%B7%20Sign_Up%20%C2%B7%20Splash.png" alt="Splash, log in and enlist mockup"><br><sub>Splash, log in and enlist</sub></td>
+    <td width="50%"><img src="./docs/mockups/Multi_Screen/Mockup%20%E2%80%94%20Log_in%20%C2%B7%20Sign_Up.png" alt="Log in and enlist mockup"><br><sub>Log in and enlist</sub></td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="./docs/mockups/Multi_Screen/Mockup%20%E2%80%94%20GalaxyMap%20%C2%B7%20Profile.png" alt="Galaxy Map and Profile mockup"><br><sub>Galaxy Map and Profile</sub></td>
+    <td width="50%"><img src="./docs/mockups/Multi_Screen/Mockup%20%E2%80%94%20SectorMap%20%C2%B7%20SectorMap_LIST.png" alt="Sector Map mockup"><br><sub>Sector Map, map and list views</sub></td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="./docs/mockups/Multi_Screen/Mockup%20%E2%80%94%20GalaxyMap%20%C2%B7%20Profile%20%C2%B7%20ReadAndExplain_ShipsAIExpanded.png" alt="Galaxy Map, Profile and Ship's AI mockup"><br><sub>Galaxy Map, Profile and the Ship's AI</sub></td>
+    <td width="50%"><img src="./docs/mockups/Multi_Screen/Mockup%20%E2%80%94%20Debrief%20%C2%B7%20BugHunt%20%C2%B7%20ReadAndExplain%20%C2%B7%20ShipsAIMarking.png" alt="Quest screens mockup"><br><sub>Quest: briefing, read and explain, bug hunt and marking</sub></td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="./docs/mockups/Multi_Screen/Mockup%20%E2%80%94%20Decoder%20%C2%B7%20ReadAndExplain_ShipsAIExpanded.png" alt="Decoder and Ship's AI mockup"><br><sub>Decoder and the Ship's AI</sub></td>
+    <td width="50%"><img src="./docs/mockups/Multi_Screen/Mockup%20%E2%80%94%20Decoder%20%C2%B7%20Admin_QuestEditor%20%C2%B7%20Admin_AI_Usage.png" alt="Decoder and Admin Console mockup"><br><sub>Decoder and Admin Console</sub></td>
+  </tr>
+</table>
 
-<img src="./readme-images/mockups/Splash.png" width="600">
-
-**Log In**
-
-<img src="./readme-images/mockups/Login.png" width="600">
-
-**Enlist**
-
-<img src="./readme-images/mockups/Enlist.png" width="600">
-
-**Onboarding**
-
-<img src="./readme-images/mockups/Onboarding.png" width="600">
-
-**Galaxy Map**
-
-<img src="./readme-images/mockups/GalaxyMap.png" width="600">
-
-**Sector Map**
-
-<img src="./readme-images/mockups/SectorMap.png" width="600">
-
-**Quest**
-
-<img src="./readme-images/mockups/Quest.png" width="600">
-
-**Decoder**
-
-<img src="./readme-images/mockups/Decoder.png" width="600">
-
-**Profile**
-
-<img src="./readme-images/mockups/Profile.png" width="600">
-
-**Admin Console**
-
-<img src="./readme-images/mockups/Admin.png" width="600">
+<details>
+<summary><b>All single-screen mockups (17)</b></summary>
+<table>
+  <tr>
+    <td><img src="./docs/mockups/Single_Screen/Mockup%20%E2%80%94%20Splash.png" alt="Splash mockup"><br><sub>Splash</sub></td>
+    <td><img src="./docs/mockups/Single_Screen/Mockup%20%E2%80%94%20Splash%20With%20Buttons.png" alt="Splash, ready mockup"><br><sub>Splash (ready)</sub></td>
+    <td><img src="./docs/mockups/Single_Screen/Mockup%20%E2%80%94%20Log_in.png" alt="Log in mockup"><br><sub>Log In</sub></td>
+  </tr>
+  <tr>
+    <td><img src="./docs/mockups/Single_Screen/Mockup%20%E2%80%94%20Sign_Up.png" alt="Enlist mockup"><br><sub>Enlist</sub></td>
+    <td><img src="./docs/mockups/Single_Screen/Mockup%20%E2%80%94%20GalaxyMap.png" alt="Galaxy Map mockup"><br><sub>Galaxy Map</sub></td>
+    <td><img src="./docs/mockups/Single_Screen/Mockup%20%E2%80%94%20SectorMap.png" alt="Sector Map mockup"><br><sub>Sector Map</sub></td>
+  </tr>
+  <tr>
+    <td><img src="./docs/mockups/Single_Screen/Mockup%20%E2%80%94%20SectorMap_LIST.png" alt="Sector Map list view mockup"><br><sub>Sector Map (List View)</sub></td>
+    <td><img src="./docs/mockups/Single_Screen/Mockup%20%E2%80%94%20Debrief.png" alt="Intel Briefing mockup"><br><sub>Intel Briefing</sub></td>
+    <td><img src="./docs/mockups/Single_Screen/Mockup%20%E2%80%94%20ReadAndExplain.png" alt="Read and Explain mockup"><br><sub>Read and Explain</sub></td>
+  </tr>
+  <tr>
+    <td><img src="./docs/mockups/Single_Screen/Mockup%20%E2%80%94%20ReadAndExplain_ShipsAIExpanded.png" alt="Ship's AI expanded mockup"><br><sub>Ship's AI Expanded</sub></td>
+    <td><img src="./docs/mockups/Single_Screen/Mockup%20%E2%80%94%20BugHunt.png" alt="Bug Hunt mockup"><br><sub>Bug Hunt</sub></td>
+    <td><img src="./docs/mockups/Single_Screen/Mockup%20%E2%80%94%20ShipsAIMarking.png" alt="Ship's AI marking mockup"><br><sub>Ship's AI Marking</sub></td>
+  </tr>
+  <tr>
+    <td><img src="./docs/mockups/Single_Screen/Mockup%20%E2%80%94%20QuestCleared.png" alt="Mission Debrief mockup"><br><sub>Mission Debrief</sub></td>
+    <td><img src="./docs/mockups/Single_Screen/Mockup%20%E2%80%94%20Decoder.png" alt="Decoder mockup"><br><sub>Decoder</sub></td>
+    <td><img src="./docs/mockups/Single_Screen/Mockup%20%E2%80%94%20Profile.png" alt="Profile mockup"><br><sub>Profile</sub></td>
+  </tr>
+  <tr>
+    <td><img src="./docs/mockups/Single_Screen/Mockup%20%E2%80%94%20Admin_QuestEditor.png" alt="Quest Editor mockup"><br><sub>Quest Editor</sub></td>
+    <td><img src="./docs/mockups/Single_Screen/Mockup%20%E2%80%94%20Admin_AI_Usage.png" alt="AI Usage mockup"><br><sub>AI Usage</sub></td>
+    <td></td>
+  </tr>
+</table>
+</details>
 
 ---
 
 ## 5. Demonstration Video
 
-<!-- Paste the Google Drive share link between the parentheses below. -->
-
-[🔗 Watch the Demo]()
+[🔗 Watch the Demo](https://drive.google.com/file/d/1byfnGiYtVzRUVQGkHLQJyGgbRbJ2OL2W/view?usp=sharing)
 
 ---
 
@@ -434,150 +444,9 @@ docs/                          project documentation (see section 11)
 
 #### System Diagrams
 
-<!-- Save diagrams in /readme-images/diagrams using the file names below. -->
+> Diagrams generated by Claude based on the current backend of the application (27 Oct 2026). Diagrams have been reviewed by me.
 
 **User Flow**
-
-![User Flow](./readme-images/diagrams/UserFlow.png)
-
-**Entity Relationship Diagram**
-
-![ERD](./readme-images/diagrams/ERD.png)
-
-The following are generated with Claude Code. They have been verified and edited by me.
-
-**System Architecture**
-
-The browser only ever talks to its own domain. The backend holds the Gemini key, the answer keys and the bug lines, so none of them reach the browser.
-
-```mermaid
-flowchart LR
-    Browser["Browser<br/>React + Vite"] -- "/api/*, session cookie" --> Proxy["Vercel rewrite<br/>(Vite proxy locally)"]
-    Proxy --> API["Express API<br/>on Render"]
-    API -- "zod validation,<br/>auth, rate limits" --> Services[Services]
-    Services --> DB[("MySQL 8<br/>on Aiven")]
-    Services -- "generate()" --> Gemini["Google Gemini<br/>Flash / Flash-Lite"]
-    Services -- "token counts only" --> Logs[("ai_usage_logs")]
-```
-
-**Entity Relationship Diagram (core tables)**
-
-The main tables from the proposal's ERD. Migrations later added featured insignia, boosters, decoder records and gear (see [docs/erd-changes.md](docs/erd-changes.md)).
-
-```mermaid
-erDiagram
-    USERS ||--o{ USER_LANGUAGE_PROGRESS : "enlisted in"
-    LANGUAGES ||--o{ USER_LANGUAGE_PROGRESS : "tracked in"
-    LANGUAGES ||--o{ QUESTS : "contains"
-    QUESTS ||--o{ QUEST_PREREQUISITES : "requires"
-    QUESTS ||--o{ CHALLENGES : "made of"
-    CHALLENGES ||--o| CODE_CHALLENGE_DETAILS : "code, key, criteria"
-    USERS ||--o{ QUEST_ATTEMPTS : "plays"
-    QUESTS ||--o{ QUEST_ATTEMPTS : "played in"
-    QUEST_ATTEMPTS ||--o{ CHALLENGE_ANSWERS : "records"
-    CHALLENGES ||--o{ CHALLENGE_ANSWERS : "answered in"
-    USERS ||--o{ USER_REWARDS : "earns"
-    REWARDS ||--o{ USER_REWARDS : "earned as"
-    USERS ||--o{ AI_USAGE_LOGS : "uses"
-
-    USERS {
-        int user_id PK
-        string username "the pilot's callsign"
-        string email
-        string password_hash "bcrypt"
-        enum role "user or admin"
-        boolean is_active
-        int level
-        int total_xp
-        int current_streak
-    }
-
-    LANGUAGES {
-        int language_id PK
-        string name "a sector, e.g. csharp"
-        string display_name
-    }
-
-    USER_LANGUAGE_PROGRESS {
-        int progress_id PK
-        int user_id FK
-        int language_id FK
-        enum proficiency_level "cadet, pilot or commander"
-        int language_xp
-    }
-
-    QUESTS {
-        int quest_id PK
-        int language_id FK
-        string title
-        string concept
-        enum difficulty
-        enum status "draft or published"
-        int xp_reward
-    }
-
-    QUEST_PREREQUISITES {
-        int quest_id PK, FK
-        int prerequisite_quest_id PK, FK
-    }
-
-    CHALLENGES {
-        int challenge_id PK
-        int quest_id FK
-        int challenge_order
-        enum challenge_type "read_and_explain, bug_hunt, decode_transmission"
-        text instructions
-    }
-
-    CODE_CHALLENGE_DETAILS {
-        int challenge_id PK, FK
-        text code_snippet
-        text answer_key "server only"
-        text marking_criteria "server only"
-        int bug_line "server only"
-    }
-
-    QUEST_ATTEMPTS {
-        int attempt_id PK
-        int user_id FK
-        int quest_id FK
-        datetime completed_at
-        int xp_earned
-    }
-
-    CHALLENGE_ANSWERS {
-        int answer_id PK
-        int attempt_id FK
-        int challenge_id FK
-        text answer_text
-        text ai_feedback
-        boolean is_correct
-        int hints_used
-    }
-
-    REWARDS {
-        int reward_id PK
-        string name
-        enum reward_type "insignia, gear or booster"
-        string unlock_condition
-    }
-
-    USER_REWARDS {
-        int user_id PK, FK
-        int reward_id PK, FK
-    }
-
-    AI_USAGE_LOGS {
-        int log_id PK
-        int user_id FK
-        enum feature
-        enum model
-        int input_tokens
-        int output_tokens
-    }
-```
-
-**User Flow Diagram**
 
 ```mermaid
 flowchart TD
@@ -612,6 +481,233 @@ flowchart TD
     Galaxy -- "admins only" --> Admin["Admin Console:<br/>Quests, Users, AI"]
     Admin -- "Exit Admin" --> Galaxy
 ```
+
+<details>
+<summary>Image version (PNG)</summary>
+
+![User Flow](./docs/diagrams/UserFlow.png)
+
+</details>
+
+**Entity Relationship Diagram**
+
+Every table in the database: the base schema plus migrations 001–008 (what changed since the proposal is in [docs/erd-changes.md](docs/erd-changes.md)). Columns marked *server only* never reach the browser.
+
+```mermaid
+erDiagram
+    USERS ||--o{ USER_LANGUAGE_PROGRESS : "enlisted in"
+    LANGUAGES ||--o{ USER_LANGUAGE_PROGRESS : "tracked in"
+    LANGUAGES |o--o{ USERS : "goal sector"
+    LANGUAGES ||--o{ QUESTS : "contains"
+    USERS |o--o{ QUESTS : "authors"
+    REWARDS |o--o{ QUESTS : "granted by"
+    QUESTS ||--o{ QUEST_PREREQUISITES : "requires"
+    QUESTS ||--o{ CHALLENGES : "made of"
+    CHALLENGES ||--o| CODE_CHALLENGE_DETAILS : "code, key, criteria"
+    CHALLENGES ||--o| ARCHITECTURE_CHALLENGE_DETAILS : "scenario, criteria"
+    USERS ||--o{ QUEST_ATTEMPTS : "plays"
+    QUESTS ||--o{ QUEST_ATTEMPTS : "played in"
+    QUEST_ATTEMPTS ||--o{ CHALLENGE_ANSWERS : "records"
+    CHALLENGES ||--o{ CHALLENGE_ANSWERS : "answered in"
+    USERS ||--o{ USER_REWARDS : "earns"
+    REWARDS ||--o{ USER_REWARDS : "earned as"
+    USERS ||--o{ USER_FEATURED_REWARDS : "features"
+    REWARDS ||--o{ USER_FEATURED_REWARDS : "featured as"
+    REWARDS |o--o{ USERS : "title, frame, visor"
+    USERS ||--o{ USER_BOOSTERS : "owns"
+    REWARDS ||--o{ USER_BOOSTERS : "booster type"
+    USERS ||--o{ TRANSMISSION_DECODES : "decodes"
+    LANGUAGES ||--o{ TRANSMISSION_DECODES : "decoded in"
+    USERS ||--o{ AI_USAGE_LOGS : "uses"
+
+    USERS {
+        int user_id PK
+        varchar username UK "the pilot's callsign"
+        varchar email UK
+        varchar password_hash "bcrypt"
+        enum role "user, admin"
+        boolean is_active
+        int level
+        int total_xp
+        int current_streak
+        varchar bio
+        int title_reward_id FK "insignia shown as title"
+        int goal_language_id FK
+        int frame_reward_id FK "equipped frame"
+        int visor_reward_id FK "equipped visor"
+        datetime last_active
+        datetime created_at
+    }
+
+    LANGUAGES {
+        int language_id PK
+        varchar name UK "a sector, e.g. csharp"
+        varchar display_name
+        text description
+        int display_order
+    }
+
+    USER_LANGUAGE_PROGRESS {
+        int progress_id PK
+        int user_id FK
+        int language_id FK
+        enum proficiency_level "cadet, pilot, commander"
+        int language_xp
+        datetime started_at
+    }
+
+    QUESTS {
+        int quest_id PK "seeded below 1000"
+        int language_id FK
+        varchar title
+        varchar concept
+        enum difficulty "easy, medium, hard"
+        enum status "draft, published"
+        boolean is_side_quest
+        text story_text
+        int xp_reward
+        int reward_id FK "booster granted"
+        int display_order
+        int created_by FK "NULL for seeded"
+        datetime created_at
+        datetime updated_at
+    }
+
+    QUEST_PREREQUISITES {
+        int quest_id PK, FK
+        int prerequisite_quest_id PK, FK
+    }
+
+    CHALLENGES {
+        int challenge_id PK "the objectives"
+        int quest_id FK
+        int challenge_order
+        enum challenge_type "briefing, read_and_explain, bug_hunt, decode_transmission, architecture"
+        text instructions
+    }
+
+    CODE_CHALLENGE_DETAILS {
+        int challenge_id PK, FK
+        varchar file_name
+        text code_snippet
+        text answer_key "server only"
+        text marking_criteria "server only"
+        int bug_line "server only"
+        varchar alt_bug_lines "server only"
+    }
+
+    ARCHITECTURE_CHALLENGE_DETAILS {
+        int challenge_id PK, FK
+        text scenario
+        text requirements
+        text marking_criteria "server only"
+    }
+
+    QUEST_ATTEMPTS {
+        int attempt_id PK
+        int user_id FK
+        int quest_id FK
+        datetime started_at
+        datetime completed_at
+        int xp_earned
+    }
+
+    CHALLENGE_ANSWERS {
+        int answer_id PK
+        int attempt_id FK
+        int challenge_id FK
+        text answer_text
+        text ai_feedback
+        boolean is_correct
+        int hints_used
+        datetime answered_at
+    }
+
+    REWARDS {
+        int reward_id PK
+        varchar code UK
+        varchar name
+        text description
+        varchar icon
+        enum reward_type "insignia, gear, booster"
+        varchar unlock_condition "e.g. quests_cleared>=5"
+        decimal xp_multiplier
+        tinyint booster_charges
+        enum gear_slot "frame, visor"
+        enum perk "streak_shield, xp_bonus"
+    }
+
+    USER_REWARDS {
+        int user_id PK, FK
+        int reward_id PK, FK
+        datetime earned_at
+    }
+
+    USER_FEATURED_REWARDS {
+        int user_id PK, FK
+        tinyint slot PK "1 to 3"
+        int reward_id FK
+    }
+
+    USER_BOOSTERS {
+        int booster_id PK
+        int user_id FK
+        int reward_id FK
+        tinyint charges_remaining
+        datetime acquired_at
+        datetime activated_at "NULL until activated"
+    }
+
+    TRANSMISSION_DECODES {
+        int decode_id PK
+        int user_id FK
+        int language_id FK
+        char code_hash "SHA-256, code never stored"
+        datetime decoded_at
+    }
+
+    AI_USAGE_LOGS {
+        int log_id PK
+        int user_id FK
+        enum feature "hint, mentor_chat, answer_evaluation, decode_transmission, debrief"
+        enum model "flash, flash_lite"
+        enum outcome "success, failed"
+        varchar model_name
+        smallint error_status
+        int input_tokens
+        int output_tokens
+        boolean flagged
+        datetime created_at
+    }
+```
+
+<details>
+<summary>Image version (PNG)</summary>
+
+![ERD](./docs/diagrams/ERD.png)
+
+</details>
+
+**System Architecture**
+
+The browser only ever talks to its own domain. The backend holds the Gemini key, the answer keys and the bug lines, so none of them reach the browser.
+
+```mermaid
+flowchart LR
+    Browser["Browser<br/>React + Vite"] -- "/api/*, session cookie" --> Proxy["Vercel rewrite<br/>(Vite proxy locally)"]
+    Proxy --> API["Express API<br/>on Render"]
+    API -- "zod validation,<br/>auth, rate limits" --> Services[Services]
+    Services --> DB[("MySQL 8<br/>on Aiven")]
+    Services -- "generate()" --> Gemini["Google Gemini<br/>Flash / Flash-Lite"]
+    Services -- "token counts only" --> Logs[("ai_usage_logs")]
+```
+
+<details>
+<summary>Image version (PNG)</summary>
+
+![System Architecture](./docs/diagrams/Architecture.png)
+
+</details>
 
 ---
 
@@ -652,14 +748,19 @@ The full prompt and request design is in [docs/ai-prompt-design.md](docs/ai-prom
 
 **Deployed testing.** Testing the live site with three pilots at once showed the Ship's AI dropping out when Gemini Flash hit its free rate limit (bug log #34). `generate()` now works through a chain of models, and failed attempts are logged and shown in red on Admin › AI.
 
-**Lecturer and peer feedback.**
-
-<!-- Add feedback from the pitch, milestone check and peer reviews here, and how each point was incorporated. -->
+**Tester feedback.**
 
 | Feedback | From | How it was incorporated |
 |---|---|---|
-| | Lecturer | |
-| | Peer | |
+| Having to find your own code for the "Decode the Transmission" quest objective broke the flow of a quest (ranked first to change) | Usability tester | Removed from quests and replaced with read-and-explain objectives; the standalone decoder, which she liked, stays ([#31](docs/bug-log.md)) |
+| It wasn't clear where to answer: answers typed in the chat didn't count | Usability tester | Answer-like chat messages get an **Add to answer** button ([#20](docs/bug-log.md), [#33](docs/bug-log.md)) |
+| Correct answers that took a different approach were marked wrong | Usability tester | The marking prompt accepts any fix that works, and bug hunts can accept more than one line ([#21](docs/bug-log.md), [#22](docs/bug-log.md)) |
+| No introduction to a concept before the quest starts | Usability tester | Every quest opens with an Intel briefing ([#25](docs/bug-log.md)) |
+| Hints ignored what had already been written | Usability tester | Hints build on the pilot's draft ([#24](docs/bug-log.md)) |
+| Ship's AI replies were slow or never arrived | Usability tester, deployed test | Timeouts and a fallback chain of Gemini models ([#23](docs/bug-log.md), [#34](docs/bug-log.md)) |
+| The decoder's editor didn't fit its box; no prompt to leave when finished | Usability tester | The decoder uses the Quest screen layout, and a popup offers next steps ([#26](docs/bug-log.md), [#27](docs/bug-log.md)) |
+| Expected the callsign to open the Profile, and clicking an insignia to feature it | Usability tester | Both now work ([#29](docs/bug-log.md), [#30](docs/bug-log.md)) |
+| "Access code" wasn't recognised as the password | Testers | Renamed to "Password" everywhere ([#35](docs/bug-log.md)) |
 
 **Automated tests.** The backend has unit and endpoint tests for every route (auth, roles, validation), with the database and Gemini faked. A separate live suite (`npm run test:ai`) checks the mentor rule, marking accuracy and prompt-injection defences against the real Gemini API. The frontend has component and page tests against a fake backend (MSW).
 

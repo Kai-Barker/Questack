@@ -1,0 +1,185 @@
+erDiagram
+    USERS ||--o{ USER_LANGUAGE_PROGRESS : "enlisted in"
+    LANGUAGES ||--o{ USER_LANGUAGE_PROGRESS : "tracked in"
+    LANGUAGES |o--o{ USERS : "goal sector"
+    LANGUAGES ||--o{ QUESTS : "contains"
+    USERS |o--o{ QUESTS : "authors"
+    REWARDS |o--o{ QUESTS : "granted by"
+    QUESTS ||--o{ QUEST_PREREQUISITES : "requires"
+    QUESTS ||--o{ CHALLENGES : "made of"
+    CHALLENGES ||--o| CODE_CHALLENGE_DETAILS : "code, key, criteria"
+    CHALLENGES ||--o| ARCHITECTURE_CHALLENGE_DETAILS : "scenario, criteria"
+    USERS ||--o{ QUEST_ATTEMPTS : "plays"
+    QUESTS ||--o{ QUEST_ATTEMPTS : "played in"
+    QUEST_ATTEMPTS ||--o{ CHALLENGE_ANSWERS : "records"
+    CHALLENGES ||--o{ CHALLENGE_ANSWERS : "answered in"
+    USERS ||--o{ USER_REWARDS : "earns"
+    REWARDS ||--o{ USER_REWARDS : "earned as"
+    USERS ||--o{ USER_FEATURED_REWARDS : "features"
+    REWARDS ||--o{ USER_FEATURED_REWARDS : "featured as"
+    REWARDS |o--o{ USERS : "title, frame, visor"
+    USERS ||--o{ USER_BOOSTERS : "owns"
+    REWARDS ||--o{ USER_BOOSTERS : "booster type"
+    USERS ||--o{ TRANSMISSION_DECODES : "decodes"
+    LANGUAGES ||--o{ TRANSMISSION_DECODES : "decoded in"
+    USERS ||--o{ AI_USAGE_LOGS : "uses"
+
+    USERS {
+        int user_id PK
+        varchar username UK "the pilot's callsign"
+        varchar email UK
+        varchar password_hash "bcrypt"
+        enum role "user, admin"
+        boolean is_active
+        int level
+        int total_xp
+        int current_streak
+        varchar bio
+        int title_reward_id FK "insignia shown as title"
+        int goal_language_id FK
+        int frame_reward_id FK "equipped frame"
+        int visor_reward_id FK "equipped visor"
+        datetime last_active
+        datetime created_at
+    }
+
+    LANGUAGES {
+        int language_id PK
+        varchar name UK "a sector, e.g. csharp"
+        varchar display_name
+        text description
+        int display_order
+    }
+
+    USER_LANGUAGE_PROGRESS {
+        int progress_id PK
+        int user_id FK
+        int language_id FK
+        enum proficiency_level "cadet, pilot, commander"
+        int language_xp
+        datetime started_at
+    }
+
+    QUESTS {
+        int quest_id PK "seeded below 1000"
+        int language_id FK
+        varchar title
+        varchar concept
+        enum difficulty "easy, medium, hard"
+        enum status "draft, published"
+        boolean is_side_quest
+        text story_text
+        int xp_reward
+        int reward_id FK "booster granted"
+        int display_order
+        int created_by FK "NULL for seeded"
+        datetime created_at
+        datetime updated_at
+    }
+
+    QUEST_PREREQUISITES {
+        int quest_id PK, FK
+        int prerequisite_quest_id PK, FK
+    }
+
+    CHALLENGES {
+        int challenge_id PK "the objectives"
+        int quest_id FK
+        int challenge_order
+        enum challenge_type "briefing, read_and_explain, bug_hunt, decode_transmission, architecture"
+        text instructions
+    }
+
+    CODE_CHALLENGE_DETAILS {
+        int challenge_id PK, FK
+        varchar file_name
+        text code_snippet
+        text answer_key "server only"
+        text marking_criteria "server only"
+        int bug_line "server only"
+        varchar alt_bug_lines "server only"
+    }
+
+    ARCHITECTURE_CHALLENGE_DETAILS {
+        int challenge_id PK, FK
+        text scenario
+        text requirements
+        text marking_criteria "server only"
+    }
+
+    QUEST_ATTEMPTS {
+        int attempt_id PK
+        int user_id FK
+        int quest_id FK
+        datetime started_at
+        datetime completed_at
+        int xp_earned
+    }
+
+    CHALLENGE_ANSWERS {
+        int answer_id PK
+        int attempt_id FK
+        int challenge_id FK
+        text answer_text
+        text ai_feedback
+        boolean is_correct
+        int hints_used
+        datetime answered_at
+    }
+
+    REWARDS {
+        int reward_id PK
+        varchar code UK
+        varchar name
+        text description
+        varchar icon
+        enum reward_type "insignia, gear, booster"
+        varchar unlock_condition "e.g. quests_cleared>=5"
+        decimal xp_multiplier
+        tinyint booster_charges
+        enum gear_slot "frame, visor"
+        enum perk "streak_shield, xp_bonus"
+    }
+
+    USER_REWARDS {
+        int user_id PK, FK
+        int reward_id PK, FK
+        datetime earned_at
+    }
+
+    USER_FEATURED_REWARDS {
+        int user_id PK, FK
+        tinyint slot PK "1 to 3"
+        int reward_id FK
+    }
+
+    USER_BOOSTERS {
+        int booster_id PK
+        int user_id FK
+        int reward_id FK
+        tinyint charges_remaining
+        datetime acquired_at
+        datetime activated_at "NULL until activated"
+    }
+
+    TRANSMISSION_DECODES {
+        int decode_id PK
+        int user_id FK
+        int language_id FK
+        char code_hash "SHA-256, code never stored"
+        datetime decoded_at
+    }
+
+    AI_USAGE_LOGS {
+        int log_id PK
+        int user_id FK
+        enum feature "hint, mentor_chat, answer_evaluation, decode_transmission, debrief"
+        enum model "flash, flash_lite"
+        enum outcome "success, failed"
+        varchar model_name
+        smallint error_status
+        int input_tokens
+        int output_tokens
+        boolean flagged
+        datetime created_at
+    }

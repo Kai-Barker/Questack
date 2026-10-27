@@ -1,0 +1,31 @@
+flowchart TD
+    Launch([Open Questack]) --> Splash["Splash: check backend<br/>and database"]
+    Splash --> SignedIn{Signed in?}
+
+    SignedIn -- "no" --> Choice{Registered pilot<br/>or new recruit?}
+    Choice -- "registered pilot" --> Login[Log In]
+    Choice -- "new recruit" --> Enlist[Enlist]
+    Enlist -. "Terms / Privacy<br/>(new tab)" .-> Info[Info pages]
+
+    Login --> HasSector
+    Enlist --> HasSector
+    SignedIn -- "yes" --> HasSector{"Enlisted in<br/>a sector?"}
+
+    HasSector -- "no" --> Onboarding["Onboarding: sector,<br/>class, concept"]
+    Onboarding --> Galaxy
+    HasSector -- "yes" --> Galaxy[Galaxy Map]
+
+    Galaxy --> Sector[Sector Map]
+    Sector -- "available quest" --> Quest["Quest: briefing,<br/>then objectives"]
+    Quest -- "hints, chat,<br/>submit answer" --> AI((Ship's AI))
+    AI --> Quest
+    Quest -- "all objectives cleared" --> Debrief[Mission Debrief]
+    Debrief --> Sector
+
+    Galaxy --> Decoder[Decoder]
+    Galaxy --> Profile[Profile and Loadout]
+    Galaxy --> Settings[Settings]
+    Settings -- "sign out" --> Login
+
+    Galaxy -- "admins only" --> Admin["Admin Console:<br/>Quests, Users, AI"]
+    Admin -- "Exit Admin" --> Galaxy

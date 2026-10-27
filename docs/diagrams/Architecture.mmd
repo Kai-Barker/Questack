@@ -1,0 +1,7 @@
+flowchart LR
+    Browser["Browser<br/>React + Vite"] -- "/api/*, session cookie" --> Proxy["Vercel rewrite<br/>(Vite proxy locally)"]
+    Proxy --> API["Express API<br/>on Render"]
+    API -- "zod validation,<br/>auth, rate limits" --> Services[Services]
+    Services --> DB[("MySQL 8<br/>on Aiven")]
+    Services -- "generate()" --> Gemini["Google Gemini<br/>Flash / Flash-Lite"]
+    Services -- "token counts only" --> Logs[("ai_usage_logs")]

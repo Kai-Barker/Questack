@@ -18,3 +18,9 @@ desktop.ini
 .idea/
 .vscode/*
 !.vscode/extensions.json
+
+# Demo recording script (contains quest answers)
+docs/demo-flow.md
+
+# Raw demo video: over GitHub's 100MB file limit, so it's linked from Google Drive instead
+docs/demo_video/

@@ -36,7 +36,7 @@ Read aloud as written, without explaining where things are.
 
 ## 4. Tester A
 
-**Name:** Rhichelle · **Date:** 14 Oct 2026 · **Background:** web developer, MERN stack · **Coding experience:** confident, but only in JavaScript · **Used an AI coding tool before?** Yes
+**Name:** Tester A · **Date:** 14 Oct 2026 · **Background:** web developer, MERN stack · **Coding experience:** confident, but only in JavaScript · **Used an AI coding tool before?** Yes
 
 She worked through the tasks mostly without help from the facilitator. When stuck, she used the Ship's AI chat and usually worked it out from there. Times and ease scores weren't recorded, and nor was which tasks needed facilitator help.
 
