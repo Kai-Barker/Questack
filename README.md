@@ -406,7 +406,7 @@ The design mockups for the built screens.
 
 ## 5. Demonstration Video
 
-[🔗 Watch the Demo](https://drive.google.com/file/d/1byfnGiYtVzRUVQGkHLQJyGgbRbJ2OL2W/view?usp=sharing)
+[🔗 Watch the Demo](https://drive.google.com/file/d/1yXvpMrbr_TpMaUY1c12DS4n6b9p2PyLk/view?usp=sharing)
 
 ---
 
