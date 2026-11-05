@@ -4,15 +4,7 @@
   <img width="1280" alt="Questack banner" src="./docs/QuestackBanner.webp" />
 </p>
 
-<p align="center">
-  <img src="./Frontend/src/assets/QuestackLogo.png" width="120" alt="Questack logo" />
-</p>
-
-<p align="center"><strong>Stack up your coding skills, one quest at a time.</strong></p>
-
-<p align="center"><a href="https://www.questack.co.za">🚀 Launch Questack</a></p>
-
-DV300 Theme 4: AI-Driven Application · Kai Barker (241065) · Area: 📚 Education
+<p align="center"><a href="https://www.questack.co.za">Questack is currently live!</a></p>
 
 ## Table of Contents
 
