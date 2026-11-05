@@ -1,8 +1,8 @@
 # Kai Barker - Questack
 
-<!-- Add a banner image here, e.g.:
-<img width="1280" height="480" alt="QuestackBanner" src="./readme-images/QuestackBanner.png" />
--->
+<p align="center">
+  <img width="1280" alt="Questack banner" src="./docs/QuestackBanner.webp" />
+</p>
 
 <p align="center">
   <img src="./Frontend/src/assets/QuestackLogo.png" width="120" alt="Questack logo" />
